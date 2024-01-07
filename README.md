@@ -1,4 +1,4 @@
-# PWP SPRING 2023
+# PWP SPRING 2024
 # PROJECT NAME
 # Group information
 * Student 1. Name and email

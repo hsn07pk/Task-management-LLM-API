@@ -3,7 +3,7 @@
 # Group information
 * Syed Abdullah Hassan syehassa24@student.oulu.fi
 * Muhammad Hassan Sohail. email
-* Uswah Batool.	 email
+* Uswah Batool.	 uswah.batool@student.oulu.fi
 * Mathéo Morin. Name and email
 	
 

@@ -4,7 +4,7 @@
 * Syed Abdullah Hassan syehassa24@student.oulu.fi
 * Muhammad Hassan Sohail. hassan.sohail@student.oulu.fi
 * Uswah Batool.	 uswah.batool@student.oulu.fi
-* Mathéo Morin. Name and email
+* Mathéo Morin. matheo.morin@student.oulu.fi
 	
 
 

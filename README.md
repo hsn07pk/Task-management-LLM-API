@@ -68,3 +68,9 @@ You can run to remove the db container instance
 ```sh
 docker rm my_postgres_db
 ```
+
+
+# The Models and Flask App
+
+The models in python are in the file models.py with all the classes present in the db and their helper functions and a app.py that calls the functions when you run the app.py flask app and call the http://127.0.0.1:5000/test. When the test endpoint is called it tried to add some users and then update and also delete that user just to show that the helper functions are working. And it returns the remaining users.
+

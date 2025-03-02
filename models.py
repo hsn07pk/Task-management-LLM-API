@@ -16,9 +16,9 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     last_login = db.Column(db.DateTime)
     
-    teams = db.relationship('Team', backref='leader', lazy=True)
-    tasks = db.relationship('Task', backref='assignee', lazy=True)
-    memberships = db.relationship('TeamMembership', backref='user', lazy=True)
+    teams = db.relationship('Team', backref='leader', lazy=True, cascade='save-update')
+    tasks = db.relationship('Task', backref='assignee', lazy=True, cascade='save-update')
+    memberships = db.relationship('TeamMembership', backref='user', lazy=True, cascade='all, delete-orphan')
 
 # Team Model
 class Team(db.Model):
@@ -27,10 +27,10 @@ class Team(db.Model):
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    lead_id = db.Column(UUID(as_uuid=True), db.ForeignKey('USER.user_id'))
+    lead_id = db.Column(UUID(as_uuid=True), db.ForeignKey('USER.user_id', ondelete='SET NULL'))
     
-    projects = db.relationship('Project', backref='team', lazy=True)
-    memberships = db.relationship('TeamMembership', backref='team', lazy=True)
+    projects = db.relationship('Project', backref='team', lazy=True, cascade='all, delete-orphan')
+    memberships = db.relationship('TeamMembership', backref='team', lazy=True, cascade='all, delete-orphan')
 
 # Category Model
 class Category(db.Model):
@@ -49,10 +49,10 @@ class Project(db.Model):
     description = db.Column(db.Text)
     status = db.Column(db.String(50), default='planning')
     deadline = db.Column(db.DateTime)
-    team_id = db.Column(UUID(as_uuid=True), db.ForeignKey('TEAM.team_id'))
-    category_id = db.Column(UUID(as_uuid=True), db.ForeignKey('CATEGORY.category_id'))
+    team_id = db.Column(UUID(as_uuid=True), db.ForeignKey('TEAM.team_id', ondelete='CASCADE'))
+    category_id = db.Column(UUID(as_uuid=True), db.ForeignKey('CATEGORY.category_id', ondelete='SET NULL'))
     
-    tasks = db.relationship('Task', backref='project', lazy=True)
+    tasks = db.relationship('Task', backref='project', lazy=True, cascade='all, delete-orphan')
 
 # Task Model
 class Task(db.Model):
@@ -63,15 +63,15 @@ class Task(db.Model):
     status = db.Column(db.String(50), default='pending')
     priority = db.Column(db.Integer, default=3)
     deadline = db.Column(db.DateTime)
-    project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('PROJECT.project_id'))
-    assignee_id = db.Column(UUID(as_uuid=True), db.ForeignKey('USER.user_id'))
+    project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('PROJECT.project_id', ondelete='CASCADE'))
+    assignee_id = db.Column(UUID(as_uuid=True), db.ForeignKey('USER.user_id', ondelete='SET NULL'))
 
 # Team Membership Model
 class TeamMembership(db.Model):
     __tablename__ = 'TEAM_MEMBERSHIP'
     membership_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('USER.user_id'))
-    team_id = db.Column(UUID(as_uuid=True), db.ForeignKey('TEAM.team_id'))
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('USER.user_id', ondelete='CASCADE'))
+    team_id = db.Column(UUID(as_uuid=True), db.ForeignKey('TEAM.team_id', ondelete='CASCADE'))
     role = db.Column(db.String(50), default='member')
 
 # Function to initialize the database

@@ -1,8 +1,11 @@
 from flask import Blueprint, request, jsonify
-from models import Task, Project, Team, db, StatusEnum, PriorityEnum, get_all_tasks as get_tasks_model
+from models import Task, Project, db, StatusEnum, PriorityEnum, get_all_tasks as get_tasks_model
 from datetime import datetime
 from uuid import UUID
 import traceback
+from schemas.schemas import TASK_SCHEMA, validate_schema
+from auth import jwt_required  
+from app import cache
 
 # Create blueprint for task routes
 task_bp = Blueprint('task_routes', __name__)
@@ -24,26 +27,28 @@ def internal_error(error):
     return jsonify({'error': 'Internal Server Error', 'message': str(error)}), 500
 
 @task_bp.route('/tasks', methods=['POST'])
+@jwt_required()
+@cache.cached(timeout=60, query_string=True)
 def create_task():
     try:
         data = request.get_json()
+        error_response = validate_schema(data, TASK_SCHEMA)
+        if error_response:
+            return error_response
         if not data:
             return jsonify({'error': 'No input data provided'}), 400
 
-        # Validate required fields
         required_fields = ['project_id', 'title']
         for field in required_fields:
             if field not in data:
                 return jsonify({'error': f'Missing required field: {field}'}), 400
 
-        # Parse and validate UUID fields
         try:
             project_id = UUID(data['project_id'])
             assignee_id = UUID(data['assignee_id']) if 'assignee_id' in data else None
         except ValueError as e:
             return jsonify({'error': f'Invalid UUID format: {str(e)}'}), 400
 
-        # Parse deadline if provided
         deadline = None
         if 'deadline' in data:
             try:
@@ -51,17 +56,14 @@ def create_task():
             except ValueError as e:
                 return jsonify({'error': f'Invalid deadline format: {str(e)}. Use ISO format (YYYY-MM-DDTHH:MM:SS)'}), 400
 
-        # Validate status
         status = data.get('status', StatusEnum.PENDING.value)
         if status not in VALID_STATUS:
             return jsonify({'error': f'Invalid status. Must be one of: {", ".join(VALID_STATUS)}'}), 400
 
-        # Validate priority
         priority = data.get('priority', PriorityEnum.LOW.value)
         if priority not in VALID_PRIORITY:
             return jsonify({'error': f'Invalid priority. Must be one of: {", ".join(map(str, VALID_PRIORITY))}'}), 400
 
-        # Create new task
         new_task = Task(
             title=data['title'],
             description=data.get('description'),
@@ -74,27 +76,25 @@ def create_task():
         
         db.session.add(new_task)
         db.session.commit()
-
+        invalidate_task_cache()
         return jsonify(new_task.to_dict()), 201
 
     except ValueError as e:
-        print(f"ValueError in create_task: {str(e)}")
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        print(f"Exception in create_task: {str(e)}")
-        print(traceback.format_exc())
         db.session.rollback()
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 @task_bp.route('/tasks', methods=['GET'])
+@jwt_required()
+@cache.cached(timeout=60, query_string=True)
 def get_tasks():
     try:
+        filters = {}
         assignee_id = request.args.get('assignee_id')
         project_id = request.args.get('project_id')
         status = request.args.get('status')
 
-        filters = {}
-        
         if assignee_id:
             try:
                 filters['assignee_id'] = UUID(assignee_id)
@@ -116,96 +116,79 @@ def get_tasks():
         return jsonify([task.to_dict() for task in tasks]), 200
 
     except Exception as e:
-        print(f"Exception in get_tasks: {str(e)}")
-        print(traceback.format_exc())
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 @task_bp.route('/tasks/<task_id>', methods=['GET'])
+@jwt_required()
+@cache.cached(timeout=60, query_string=True)
 def get_task(task_id):
     try:
-        task_uuid = UUID(task_id)
-        task = Task.query.get(task_uuid)
-        
+        task = Task.query.get(UUID(task_id))
         if not task:
             return jsonify({'error': 'Task not found'}), 404
-
         return jsonify(task.to_dict()), 200
-
     except ValueError as e:
         return jsonify({'error': f'Invalid task_id format: {str(e)}'}), 400
     except Exception as e:
-        print(f"Exception in get_task: {str(e)}")
-        print(traceback.format_exc())
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 @task_bp.route('/tasks/<task_id>', methods=['PUT'])
+@jwt_required()
+@cache.cached(timeout=60, query_string=True)
 def update_task(task_id):
     try:
-        task_uuid = UUID(task_id)
-        task = Task.query.get(task_uuid)
-        
+        task = Task.query.get(UUID(task_id))
         if not task:
             return jsonify({'error': 'Task not found'}), 404
 
         data = request.get_json()
-        if not data:
-            return jsonify({'error': 'No input data provided'}), 400
+        error_response = validate_schema(data, TASK_SCHEMA)
+        if error_response:
+            return error_response
 
-        # Update fields if provided
-        if 'title' in data:
-            task.title = data['title']
-        if 'description' in data:
-            task.description = data['description']
-        if 'priority' in data:
-            priority = data['priority']
-            if priority not in VALID_PRIORITY:
-                return jsonify({'error': f'Invalid priority. Must be one of: {", ".join(map(str, VALID_PRIORITY))}'}), 400
-            task.priority = priority
-        if 'status' in data:
-            status = data['status']
-            if status not in VALID_STATUS:
-                return jsonify({'error': f'Invalid status. Must be one of: {", ".join(VALID_STATUS)}'}), 400
-            task.status = status
+        task.title = data.get('title', task.title)
+        task.description = data.get('description', task.description)
+        if 'priority' in data and data['priority'] in VALID_PRIORITY:
+            task.priority = data['priority']
+        if 'status' in data and data['status'] in VALID_STATUS:
+            task.status = data['status']
         if 'deadline' in data:
             try:
                 task.deadline = datetime.fromisoformat(data['deadline'].replace('Z', '+00:00'))
             except ValueError as e:
-                return jsonify({'error': f'Invalid deadline format: {str(e)}. Use ISO format (YYYY-MM-DDTHH:MM:SS)'}), 400
+                return jsonify({'error': f'Invalid deadline format: {str(e)}'}), 400
 
         db.session.commit()
+        invalidate_task_cache()
         return jsonify(task.to_dict()), 200
-
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        print(f"Exception in update_task: {str(e)}")
-        print(traceback.format_exc())
         db.session.rollback()
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 @task_bp.route('/tasks/<task_id>', methods=['DELETE'])
+@jwt_required()
+@cache.cached(timeout=60, query_string=True)
 def delete_task(task_id):
     try:
-        task_uuid = UUID(task_id)
-        task = Task.query.get(task_uuid)
-        
+        task = Task.query.get(UUID(task_id))
         if not task:
             return jsonify({'error': 'Task not found'}), 404
-
         db.session.delete(task)
         db.session.commit()
-        
+        invalidate_task_cache()
         return '', 204
-
     except ValueError as e:
         return jsonify({'error': f'Invalid task_id format: {str(e)}'}), 400
     except Exception as e:
-        print(f"Exception in delete_task: {str(e)}")
-        print(traceback.format_exc())
         db.session.rollback()
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
+
 @task_bp.route('/projects', methods=['POST'])
+@jwt_required()
+@cache.cached(timeout=60, query_string=True)
 def create_project():
     try:
         data = request.get_json()
@@ -222,7 +205,7 @@ def create_project():
         
         db.session.add(new_project)
         db.session.commit()
-
+        invalidate_task_cache()
         return jsonify({
             'project_id': str(new_project.project_id),
             'title': new_project.title,
@@ -236,3 +219,7 @@ def create_project():
         print(traceback.format_exc())
         db.session.rollback()
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
+
+def invalidate_task_cache():
+    cache.delete_memoized(get_tasks)
+    cache.delete_memoized(get_task)

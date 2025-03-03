@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify
 from models import Team, User, TeamMembership, db
 from uuid import UUID
 import traceback
+from flask_jwt_extended import jwt_required
+from app import cache
 
 # Create blueprint for team routes
 team_bp = Blueprint('team_routes', __name__)
@@ -19,6 +21,7 @@ def internal_error(error):
     return jsonify({'error': 'Internal Server Error', 'message': str(error)}), 500
 
 @team_bp.route('/teams', methods=['POST'])
+@jwt_required()
 def create_team_route():
     try:
         data = request.get_json()
@@ -77,6 +80,7 @@ def create_team_route():
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 @team_bp.route('/teams', methods=['GET'])
+@jwt_required()
 def get_teams():
     try:
         teams = Team.query.all()
@@ -97,6 +101,7 @@ def get_teams():
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 @team_bp.route('/teams/<team_id>', methods=['GET'])
+@jwt_required()
 def get_team(team_id):
     try:
         team_uuid = UUID(team_id)
@@ -134,6 +139,7 @@ def get_team(team_id):
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 @team_bp.route('/teams/<team_id>', methods=['PUT'])
+@jwt_required()
 def update_team(team_id):
     try:
         team_uuid = UUID(team_id)
@@ -201,6 +207,7 @@ def update_team(team_id):
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 @team_bp.route('/teams/<team_id>', methods=['DELETE'])
+@jwt_required()
 def delete_team(team_id):
     try:
         team_uuid = UUID(team_id)
@@ -224,6 +231,7 @@ def delete_team(team_id):
 
 # Team Membership routes
 @team_bp.route('/teams/<team_id>/members', methods=['POST'])
+@jwt_required()
 def add_team_member(team_id):
     try:
         team_uuid = UUID(team_id)
@@ -288,6 +296,7 @@ def add_team_member(team_id):
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 @team_bp.route('/teams/<team_id>/members/<user_id>', methods=['PUT'])
+@jwt_required()
 def update_team_member(team_id, user_id):
     try:
         team_uuid = UUID(team_id)
@@ -346,6 +355,7 @@ def update_team_member(team_id, user_id):
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 @team_bp.route('/teams/<team_id>/members/<user_id>', methods=['DELETE'])
+@jwt_required()
 def remove_team_member(team_id, user_id):
     try:
         team_uuid = UUID(team_id)

@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_caching import Cache
 from models import (
     db, init_db, create_user, get_all_users, update_user, delete_user,
     PriorityEnum, StatusEnum
@@ -7,8 +8,11 @@ from routes.task_routes import task_bp
 from datetime import datetime
 from uuid import UUID
 
+cache = Cache(config={'CACHE_TYPE': 'SimpleCache'})
+
 def create_app():
     app = Flask(__name__)
+    cache.init_app(app)
     init_db(app)
     
     # Register blueprints

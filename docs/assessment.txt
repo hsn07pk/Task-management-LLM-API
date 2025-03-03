@@ -1,0 +1,19 @@
+PWP API
+points	details
+1. Wiki Report	5.0	
+	Resource Table	1.0	The resource table exists and clearly shows what URIs are available in the API and what methods each of them support.
+	Addressability	1.5	The justification shows through examples how addressability is achieved in the API. The API implementation is fully addressable.The hierarchy of resources is consistent.
+	Uniform Interface	1.5	The description explains how each HTTP method is used in the API, through examples. The API designs and implements uniform interface correctly, using methods adequately.
+	Statelesness	1.0	The description shows that the writer understands what is server side state, and explains how the API achieves statelesness. The API implementation doesn't have server side state.
+2. Basic Implementation	10.0	
+	Project Structure	2.0	The project repository has good structure as recommended in the exercises. Single file applications will not fulfill this criteria. If you use a different framework than the one proposed in the course, you need to provide some information on good practices for the framework you are using (e.g link to documentation material).
+	Code Quality	1.0	The code follows rules for idiomatic Python. This includes passing PyLint with a score of 9 or higher, and there should be grounds for ignoring its corrections. This will be scored very strictly.If you are not using Python, you must use an equivalent linting tool and showing the result. Without linting tool you cannot get any points.
+	Documentation	1.0	The code is documented where necessary. Sources for borrowed code are clearly marked, with a link to the source. Use of AI is clearly indicated (including which tool and prompts were used). This includes any examples taken directly from the course material.
+	Instructions	1.0	The project root contains a README with full instructions on how to install and deploy the API. Instructions also show how to run the tests.
+	Test Coverage	3.0	Test coverage in relevant files is 96% or higher for 3p, 91-95% for 2p, 85-90% for 1p.
+	Implementation Works	2.0	The implementation works, as shown mainly by tests and the reviewer doesn't find any problems in the code. If the coverage is not large enough, working implementation is done through demonstration. In that case, students can get only 1.0. at maximum. In any case, if the reviewer can ask for additional tests, and if they failed grade can be reduced.
+3. Extras	6.0	
+	URL Converters	1.0	The API uses at least one URL converter, and the (lack of) use of converters is justified for each URL variable in the code.
+	Schema Validation	1.0	The API uses JSON schema validation to validate incoming requests. Decisions for choosing types and formats are justified in the text.
+	Caching	2.0	The API uses caching where relevant, in at least one GET method. The decisions regarding caching for each GET method are justified in the text. Cache invalidation is also explained in the text.
+	Authentication	2.0	The API uses authentication for at least one resource. The (lack of) use of authentication is justified for each resource and method.

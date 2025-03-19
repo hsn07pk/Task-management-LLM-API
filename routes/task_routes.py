@@ -1,15 +1,20 @@
 from flask import Blueprint, request, jsonify
-from models import Task, Project, Team, db, StatusEnum, PriorityEnum, get_all_tasks as get_tasks_model
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from models import Task, Project, db, StatusEnum, PriorityEnum
 from datetime import datetime
 from uuid import UUID
 import traceback
-
-# Create blueprint for task routes
+from validators.validators import validate_json
+from schemas.schemas import TASK_SCHEMA
+from extentions.extensions import cache  
+from models import User
+from models import StatusEnum, PriorityEnum 
 task_bp = Blueprint('task_routes', __name__)
 
-# Valid status and priority values
 VALID_STATUS = [e.value for e in StatusEnum]
-VALID_PRIORITY = [e.value for e in PriorityEnum]
+VALID_PRIORITY_NAMES = [e.name for e in PriorityEnum]  # ['HIGH', 'MEDIUM', 'LOW']
+
+# ---------------- ERROR HANDLERS ----------------
 
 @task_bp.errorhandler(400)
 def bad_request(error):
@@ -23,45 +28,50 @@ def not_found(error):
 def internal_error(error):
     return jsonify({'error': 'Internal Server Error', 'message': str(error)}), 500
 
+# ---------------- TASK ROUTES ----------------
+
 @task_bp.route('/tasks', methods=['POST'])
+@jwt_required()
+@validate_json(TASK_SCHEMA)
 def create_task():
+    """Creates a new task with validation and authentication."""
     try:
+        user_id = get_jwt_identity()
         data = request.get_json()
-        if not data:
-            return jsonify({'error': 'No input data provided'}), 400
+        created_by = UUID(user_id)
+        updated_by = UUID(user_id)
 
-        # Validate required fields
-        required_fields = ['project_id', 'title']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({'error': f'Missing required field: {field}'}), 400
+        # Validate project_id exists
+        project_id = UUID(data['project_id'])
+        project = Project.query.get(project_id)
+        if not project:
+            return jsonify({'error': 'Invalid project_id: Project not found'}), 400
 
-        # Parse and validate UUID fields
-        try:
-            project_id = UUID(data['project_id'])
-            assignee_id = UUID(data['assignee_id']) if 'assignee_id' in data else None
-        except ValueError as e:
-            return jsonify({'error': f'Invalid UUID format: {str(e)}'}), 400
+        # Validate assignee_id exists if provided
+        assignee_id = None
+        if 'assignee_id' in data:
+            assignee_id = UUID(data['assignee_id'])
+            assignee = User.query.get(assignee_id)
+            if not assignee:
+                return jsonify({'error': 'Invalid assignee_id: User not found'}), 400
 
         # Parse deadline if provided
         deadline = None
         if 'deadline' in data:
-            try:
-                deadline = datetime.fromisoformat(data['deadline'].replace('Z', '+00:00'))
-            except ValueError as e:
-                return jsonify({'error': f'Invalid deadline format: {str(e)}. Use ISO format (YYYY-MM-DDTHH:MM:SS)'}), 400
+            deadline = datetime.fromisoformat(data['deadline'].replace('Z', '+00:00'))
 
-        # Validate status
+        # Validate status and priority
         status = data.get('status', StatusEnum.PENDING.value)
         if status not in VALID_STATUS:
-            return jsonify({'error': f'Invalid status. Must be one of: {", ".join(VALID_STATUS)}'}), 400
+            return jsonify({'error': 'Invalid status value'}), 400
 
-        # Validate priority
-        priority = data.get('priority', PriorityEnum.LOW.value)
-        if priority not in VALID_PRIORITY:
-            return jsonify({'error': f'Invalid priority. Must be one of: {", ".join(map(str, VALID_PRIORITY))}'}), 400
+        priority_str = data.get('priority', 'LOW').upper()
+        try:
+            priority = PriorityEnum[priority_str].value
+        except KeyError:
+            return jsonify({'error': 'Invalid priority value'}), 400
 
-        # Create new task
+        # Create the task
         new_task = Task(
             title=data['title'],
             description=data.get('description'),
@@ -69,81 +79,30 @@ def create_task():
             deadline=deadline,
             status=status,
             project_id=project_id,
-            assignee_id=assignee_id
+            assignee_id=assignee_id,
+            created_by=created_by,
+            updated_by=updated_by
         )
-        
+
         db.session.add(new_task)
         db.session.commit()
-
         return jsonify(new_task.to_dict()), 201
 
     except ValueError as e:
-        print(f"ValueError in create_task: {str(e)}")
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'error': 'Invalid UUID format', 'message': str(e)}), 400
     except Exception as e:
-        print(f"Exception in create_task: {str(e)}")
         print(traceback.format_exc())
         db.session.rollback()
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
-@task_bp.route('/tasks', methods=['GET'])
-def get_tasks():
-    try:
-        assignee_id = request.args.get('assignee_id')
-        project_id = request.args.get('project_id')
-        status = request.args.get('status')
 
-        filters = {}
-        
-        if assignee_id:
-            try:
-                filters['assignee_id'] = UUID(assignee_id)
-            except ValueError as e:
-                return jsonify({'error': f'Invalid assignee_id format: {str(e)}'}), 400
-
-        if project_id:
-            try:
-                filters['project_id'] = UUID(project_id)
-            except ValueError as e:
-                return jsonify({'error': f'Invalid project_id format: {str(e)}'}), 400
-
-        if status:
-            if status not in VALID_STATUS:
-                return jsonify({'error': f'Invalid status. Must be one of: {", ".join(VALID_STATUS)}'}), 400
-            filters['status'] = status
-
-        tasks = get_tasks_model(**filters)
-        return jsonify([task.to_dict() for task in tasks]), 200
-
-    except Exception as e:
-        print(f"Exception in get_tasks: {str(e)}")
-        print(traceback.format_exc())
-        return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
-
-@task_bp.route('/tasks/<task_id>', methods=['GET'])
-def get_task(task_id):
-    try:
-        task_uuid = UUID(task_id)
-        task = Task.query.get(task_uuid)
-        
-        if not task:
-            return jsonify({'error': 'Task not found'}), 404
-
-        return jsonify(task.to_dict()), 200
-
-    except ValueError as e:
-        return jsonify({'error': f'Invalid task_id format: {str(e)}'}), 400
-    except Exception as e:
-        print(f"Exception in get_task: {str(e)}")
-        print(traceback.format_exc())
-        return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
-
-@task_bp.route('/tasks/<task_id>', methods=['PUT'])
+@task_bp.route('/tasks/<uuid:task_id>', methods=['PUT'])
+@jwt_required()
 def update_task(task_id):
+    """Update an existing task."""
     try:
-        task_uuid = UUID(task_id)
-        task = Task.query.get(task_uuid)
-        
+        user_id = get_jwt_identity()
+        task = Task.query.get(task_id)
         if not task:
             return jsonify({'error': 'Task not found'}), 404
 
@@ -151,88 +110,77 @@ def update_task(task_id):
         if not data:
             return jsonify({'error': 'No input data provided'}), 400
 
-        # Update fields if provided
         if 'title' in data:
             task.title = data['title']
         if 'description' in data:
             task.description = data['description']
         if 'priority' in data:
-            priority = data['priority']
-            if priority not in VALID_PRIORITY:
-                return jsonify({'error': f'Invalid priority. Must be one of: {", ".join(map(str, VALID_PRIORITY))}'}), 400
-            task.priority = priority
-        if 'status' in data:
-            status = data['status']
-            if status not in VALID_STATUS:
-                return jsonify({'error': f'Invalid status. Must be one of: {", ".join(VALID_STATUS)}'}), 400
-            task.status = status
+            priority_str = data['priority'].upper()
+            try:
+                task.priority = PriorityEnum[priority_str].value
+            except KeyError:
+                return jsonify({'error': 'Invalid priority value'}), 400
+        if 'status' in data and data['status'] in VALID_STATUS:
+            task.status = data['status']
         if 'deadline' in data:
             try:
                 task.deadline = datetime.fromisoformat(data['deadline'].replace('Z', '+00:00'))
-            except ValueError as e:
-                return jsonify({'error': f'Invalid deadline format: {str(e)}. Use ISO format (YYYY-MM-DDTHH:MM:SS)'}), 400
+            except ValueError:
+                return jsonify({'error': 'Invalid deadline format. Use ISO format (YYYY-MM-DDTHH:MM:SS)'}), 400
+        if 'assignee_id' in data:
+            try:
+                task.assignee_id = UUID(data['assignee_id'])
+            except ValueError:
+                return jsonify({'error': 'Invalid assignee_id format'}), 400
 
+        task.updated_by = user_id
         db.session.commit()
         return jsonify(task.to_dict()), 200
 
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
     except Exception as e:
-        print(f"Exception in update_task: {str(e)}")
         print(traceback.format_exc())
         db.session.rollback()
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
-@task_bp.route('/tasks/<task_id>', methods=['DELETE'])
+
+
+@task_bp.route('/tasks/<uuid:task_id>', methods=['DELETE'])
+@jwt_required()
 def delete_task(task_id):
+    """Delete a task."""
     try:
-        task_uuid = UUID(task_id)
-        task = Task.query.get(task_uuid)
-        
+        task = Task.query.get(task_id)
         if not task:
             return jsonify({'error': 'Task not found'}), 404
 
         db.session.delete(task)
         db.session.commit()
-        
         return '', 204
 
-    except ValueError as e:
-        return jsonify({'error': f'Invalid task_id format: {str(e)}'}), 400
     except Exception as e:
-        print(f"Exception in delete_task: {str(e)}")
         print(traceback.format_exc())
         db.session.rollback()
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
-
-@task_bp.route('/projects', methods=['POST'])
-def create_project():
+    
+@task_bp.route('/tasks', methods=['GET'])
+@jwt_required()
+def get_tasks():
+    """Get all tasks with optional filters."""
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'No input data provided'}), 400
+        project_id = request.args.get('project_id')
+        assignee_id = request.args.get('assignee_id')
+        status = request.args.get('status')
 
-        # Create new project
-        new_project = Project(
-            title=data['title'],
-            description=data.get('description'),
-            deadline=datetime.fromisoformat(data['deadline']) if 'deadline' in data else None,
-            status=data.get('status', 'planning')
-        )
-        
-        db.session.add(new_project)
-        db.session.commit()
+        query = Task.query
+        if project_id:
+            query = query.filter_by(project_id=project_id)
+        if assignee_id:
+            query = query.filter_by(assignee_id=assignee_id)
+        if status:
+            query = query.filter_by(status=status)
 
-        return jsonify({
-            'project_id': str(new_project.project_id),
-            'title': new_project.title,
-            'description': new_project.description,
-            'status': new_project.status,
-            'deadline': new_project.deadline.isoformat() if new_project.deadline else None
-        }), 201
+        tasks = query.all()
+        return jsonify([task.to_dict() for task in tasks]), 200
 
     except Exception as e:
-        print(f"Exception in create_project: {str(e)}")
-        print(traceback.format_exc())
-        db.session.rollback()
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500

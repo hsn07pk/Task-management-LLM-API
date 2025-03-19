@@ -11,6 +11,7 @@ db = SQLAlchemy()
 # User Model
 class User(db.Model):
     __tablename__ = 'USER'
+
     user_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     username = db.Column(db.String(255), unique=True, nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
@@ -19,37 +20,32 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     last_login = db.Column(db.DateTime)
 
+    # Relationships with foreign keys explicitly defined
     teams = db.relationship('Team', backref='leader', lazy=True, cascade='save-update')
-    tasks = db.relationship('Task', 
-                           foreign_keys='Task.assignee_id',
-                           backref='assignee', 
-                           lazy=True, 
-                           cascade='save-update')
     
-    created_tasks = db.relationship('Task',
-                                   foreign_keys='Task.created_by',
-                                   backref='creator',
-                                   lazy=True)
-    
-    updated_tasks = db.relationship('Task',
-                                   foreign_keys='Task.updated_by',
-                                   backref='updater',
-                                   lazy=True)
-    
-    memberships = db.relationship('TeamMembership', backref='user', lazy=True, cascade='all, delete-orphan')
+    assigned_tasks = db.relationship(
+        'Task', 
+        foreign_keys='Task.assignee_id',
+        back_populates='assignee',  # Changed from backref
+        lazy=True, 
+        cascade='save-update'
+    )
 
-    def to_dict(self):
-        return {
-            'user_id': str(self.user_id),  # Convert UUID to string
-            'username': self.username,
-            'email': self.email,
-            'role': self.role,
-            'created_at': self.created_at.isoformat() if self.created_at else None,  # Format datetime
-            'last_login': self.last_login.isoformat() if self.last_login else None,
-            '_links': {
-                'self': f'/users/{self.user_id}'
-            }
-        }
+    created_tasks = db.relationship(
+        'Task', 
+        foreign_keys='Task.created_by',
+        back_populates='creator', 
+        lazy=True
+    )
+
+    updated_tasks = db.relationship(
+        'Task', 
+        foreign_keys='Task.updated_by',
+        back_populates='updater', 
+        lazy=True
+    )
+
+    memberships = db.relationship('TeamMembership', backref='user', lazy=True, cascade='all, delete-orphan')
 
 # Team Model
 class Team(db.Model):
@@ -139,6 +135,11 @@ class Task(db.Model):
     created_by = db.Column(UUID(as_uuid=True), db.ForeignKey('USER.user_id', ondelete='SET NULL'))
     updated_by = db.Column(UUID(as_uuid=True), db.ForeignKey('USER.user_id', ondelete='SET NULL'))
 
+    # Relationships with explicit foreign_keys
+    assignee = db.relationship('User', foreign_keys=[assignee_id], back_populates='assigned_tasks')
+    creator = db.relationship('User', foreign_keys=[created_by], back_populates='created_tasks')
+    updater = db.relationship('User', foreign_keys=[updated_by], back_populates='updated_tasks')
+    
     def __init__(self, title, description=None, priority=PriorityEnum.LOW.value, deadline=None, 
                  status=StatusEnum.PENDING.value, project_id=None, assignee_id=None, 
                  created_by=None, updated_by=None):

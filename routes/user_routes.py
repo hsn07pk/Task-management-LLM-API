@@ -29,18 +29,11 @@ def create_user():
     """Create a new user."""
     try:
         data = request.get_json()
-        
-        # Check for existing email/username
-        if User.query.filter_by(email=data['email']).first():
-            return jsonify({'error': 'Email already exists'}), 400
-        if User.query.filter_by(username=data['username']).first():
-            return jsonify({'error': 'Username already exists'}), 400
-
-        hashed_password = generate_password_hash(data['password'])
+        hashed_password = generate_password_hash(data['password'])  # Hash the password
         new_user = User(
             username=data['username'],
             email=data['email'],
-            password_hash=hashed_password,
+            password_hash=hashed_password,  # Use hashed password
             role=data.get('role', 'member')
         )
         

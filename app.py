@@ -20,6 +20,12 @@ def create_app():
     app.config['JWT_SECRET_KEY'] = 'super-secret'  # Change this in production
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)  # Token expiration time
     app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # Cache expiry time (5 minutes)
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_pre_ping": True
+    }
+    app.config['SQLALCHEMY_DATABASE_URI'] = (
+    'postgresql+psycopg2://admin:helloworld123@localhost:5432/task_management_db'
+    )
 
     jwt = JWTManager(app)
     cache.init_app(app)  # Initialize caching with the app

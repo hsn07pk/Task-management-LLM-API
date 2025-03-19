@@ -38,11 +38,14 @@ CREATE TABLE TASK (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     status VARCHAR(50) DEFAULT 'pending',
-    priority INT CHECK (priority BETWEEN 1 AND 5) DEFAULT 3,
+    priority INT CHECK (priority BETWEEN 1 AND 3) DEFAULT 3,
     deadline TIMESTAMP,
     project_id UUID REFERENCES PROJECT(project_id),
-    assignee_id UUID REFERENCES "USER"(user_id)
+    assignee_id UUID REFERENCES "USER"(user_id),
+    created_by UUID REFERENCES "USER"(user_id),  -- Add this line
+    updated_by UUID REFERENCES "USER"(user_id)   -- Add this line
 );
+
 
 CREATE TABLE TEAM_MEMBERSHIP (
     membership_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -53,10 +56,10 @@ CREATE TABLE TEAM_MEMBERSHIP (
 
 -- Step 2: Insert Dummy Data for Users
 INSERT INTO "USER" (username, email, password_hash, role) VALUES
-('alice', 'alice@example.com', 'hashed_password_1', 'admin'),
-('bob', 'bob@example.com', 'hashed_password_2', 'member'),
-('charlie', 'charlie@example.com', 'hashed_password_3', 'member'),
-('david', 'david@example.com', 'hashed_password_4', 'admin'),
+('alice', 'alice@example.com', 'scrypt:32768:8:1$VU4ClwsmdMiXaUxj$0798bb69bfbd57d152f4a08ae8c360929cf09e0364fa31ae6ce09875f79eaca20ee8201e5eb9ddad5d6c02393c9c980c1c6cb9751783c3b42445c3b87085af6e', 'admin'),
+('bob', 'bob@example.com', 'scrypt:32768:8:1$eJXP4aVnlSqeEO8P$505d3ab13749a08ecc4ffc60ddd1686af1261578b344a89adfe0c9e23fa7058dbefae90664b2a0832c192a96d1786fe7d04e93fa5e927f8c9b20afb530f901f8', 'member'),
+('charlie', 'charlie@example.com', 'scrypt:32768:8:1$8NB00oQJZMtDL8y7$040650a2aa329a01f8c01c122751ec5893575ad31b913128974b5bae0cb30c58ae8897a5aaf5e05c8213fcad28b13043c3f7919a01b0a5ffa3ba067cd31d6078', 'member'),
+('david', 'david@example.com', 'scrypt:32768:8:1$p6kUDw8REpwcJFiV$96f7db9b62b21fe19db0a599f7bfcf4c93479ca4d86ae3ed89dfcc3df61645331ee0def7b7685f5eade9c48878d4025f5e075aa06da57e7529d7ec3a346d28c5', 'admin'),
 ('eve', 'eve@example.com', 'hashed_password_5', 'member'),
 ('frank', 'frank@example.com', 'hashed_password_6', 'member'),
 ('grace', 'grace@example.com', 'hashed_password_7', 'admin'),

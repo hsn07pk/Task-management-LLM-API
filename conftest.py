@@ -5,12 +5,11 @@ import uuid
 
 @pytest.fixture
 def app():
-    """Create and configure a new app instance for each test."""
     app = create_app()
     app.config.update({
         'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
-        'SQLALCHEMY_TRACK_MODIFICATIONS': False
+        'CACHE_TYPE': 'SimpleCache',  # Use a simple in-memory cache
+        'CACHE_DEFAULT_TIMEOUT': 0  # Disable caching
     })
     return app
 
@@ -26,7 +25,6 @@ def runner(app):
 
 @pytest.fixture(autouse=True)
 def app_context(app):
-    """Create an application context for tests."""
     with app.app_context():
         db.create_all()
         yield
@@ -34,11 +32,11 @@ def app_context(app):
         db.drop_all()
 
 @pytest.fixture
-def test_team(app):
-    """Create a test team."""
+def test_team(app, test_user):  # Add test_user as a dependency
     team = Team(
         name='Test Team',
-        description='A test team'
+        description='A test team',
+        lead_id=test_user.user_id  # Add valid lead_id
     )
     db.session.add(team)
     db.session.commit()
@@ -96,3 +94,15 @@ def test_task(app, test_user, test_project):
     db.session.add(task)
     db.session.commit()
     return task
+
+@pytest.fixture
+def test_admin_user(app):
+    user = User(
+        username='admin_user',
+        email='admin@example.com',
+        password_hash='test_hash',
+        role='admin'
+    )
+    db.session.add(user)
+    db.session.commit()
+    return user

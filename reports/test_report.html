@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title id="head-title">test_report.html</title>
+      <style type="text/css">body {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  /* do not increase min-width as some may use split screens */
+  min-width: 800px;
+  color: #999;
+}
+
+h1 {
+  font-size: 24px;
+  color: black;
+}
+
+h2 {
+  font-size: 16px;
+  color: black;
+}
+
+p {
+  color: black;
+}
+
+a {
+  color: #999;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+/******************************
+ * SUMMARY INFORMATION
+ ******************************/
+#environment td {
+  padding: 5px;
+  border: 1px solid #e6e6e6;
+  vertical-align: top;
+}
+#environment tr:nth-child(odd) {
+  background-color: #f6f6f6;
+}
+#environment ul {
+  margin: 0;
+  padding: 0 20px;
+}
+
+/******************************
+ * TEST RESULT COLORS
+ ******************************/
+span.passed,
+.passed .col-result {
+  color: green;
+}
+
+span.skipped,
+span.xfailed,
+span.rerun,
+.skipped .col-result,
+.xfailed .col-result,
+.rerun .col-result {
+  color: orange;
+}
+
+span.error,
+span.failed,
+span.xpassed,
+.error .col-result,
+.failed .col-result,
+.xpassed .col-result {
+  color: red;
+}
+
+.col-links__extra {
+  margin-right: 3px;
+}
+
+/******************************
+ * RESULTS TABLE
+ *
+ * 1. Table Layout
+ * 2. Extra
+ * 3. Sorting items
+ *
+ ******************************/
+/*------------------
+ * 1. Table Layout
+ *------------------*/
+#results-table {
+  border: 1px solid #e6e6e6;
+  color: #999;
+  font-size: 12px;
+  width: 100%;
+}
+#results-table th,
+#results-table td {
+  padding: 5px;
+  border: 1px solid #e6e6e6;
+  text-align: left;
+}
+#results-table th {
+  font-weight: bold;
+}
+
+/*------------------
+ * 2. Extra
+ *------------------*/
+.logwrapper {
+  max-height: 230px;
+  overflow-y: scroll;
+  background-color: #e6e6e6;
+}
+.logwrapper.expanded {
+  max-height: none;
+}
+.logwrapper.expanded .logexpander:after {
+  content: "collapse [-]";
+}
+.logwrapper .logexpander {
+  z-index: 1;
+  position: sticky;
+  top: 10px;
+  width: max-content;
+  border: 1px solid;
+  border-radius: 3px;
+  padding: 5px 7px;
+  margin: 10px 0 10px calc(100% - 80px);
+  cursor: pointer;
+  background-color: #e6e6e6;
+}
+.logwrapper .logexpander:after {
+  content: "expand [+]";
+}
+.logwrapper .logexpander:hover {
+  color: #000;
+  border-color: #000;
+}
+.logwrapper .log {
+  min-height: 40px;
+  position: relative;
+  top: -50px;
+  height: calc(100% + 50px);
+  border: 1px solid #e6e6e6;
+  color: black;
+  display: block;
+  font-family: "Courier New", Courier, monospace;
+  padding: 5px;
+  padding-right: 80px;
+  white-space: pre-wrap;
+}
+
+div.media {
+  border: 1px solid #e6e6e6;
+  float: right;
+  height: 240px;
+  margin: 0 5px;
+  overflow: hidden;
+  width: 320px;
+}
+
+.media-container {
+  display: grid;
+  grid-template-columns: 25px auto 25px;
+  align-items: center;
+  flex: 1 1;
+  overflow: hidden;
+  height: 200px;
+}
+
+.media-container--fullscreen {
+  grid-template-columns: 0px auto 0px;
+}
+
+.media-container__nav--right,
+.media-container__nav--left {
+  text-align: center;
+  cursor: pointer;
+}
+
+.media-container__viewport {
+  cursor: pointer;
+  text-align: center;
+  height: inherit;
+}
+.media-container__viewport img,
+.media-container__viewport video {
+  object-fit: cover;
+  width: 100%;
+  max-height: 100%;
+}
+
+.media__name,
+.media__counter {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  flex: 0 0 25px;
+  align-items: center;
+}
+
+.collapsible td:not(.col-links) {
+  cursor: pointer;
+}
+.collapsible td:not(.col-links):hover::after {
+  color: #bbb;
+  font-style: italic;
+  cursor: pointer;
+}
+
+.col-result {
+  width: 130px;
+}
+.col-result:hover::after {
+  content: " (hide details)";
+}
+
+.col-result.collapsed:hover::after {
+  content: " (show details)";
+}
+
+#environment-header h2:hover::after {
+  content: " (hide details)";
+  color: #bbb;
+  font-style: italic;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+#environment-header.collapsed h2:hover::after {
+  content: " (show details)";
+  color: #bbb;
+  font-style: italic;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/*------------------
+ * 3. Sorting items
+ *------------------*/
+.sortable {
+  cursor: pointer;
+}
+.sortable.desc:after {
+  content: " ";
+  position: relative;
+  left: 5px;
+  bottom: -12.5px;
+  border: 10px solid #4caf50;
+  border-bottom: 0;
+  border-left-color: transparent;
+  border-right-color: transparent;
+}
+.sortable.asc:after {
+  content: " ";
+  position: relative;
+  left: 5px;
+  bottom: 12.5px;
+  border: 10px solid #4caf50;
+  border-top: 0;
+  border-left-color: transparent;
+  border-right-color: transparent;
+}
+
+.hidden, .summary__reload__button.hidden {
+  display: none;
+}
+
+.summary__data {
+  flex: 0 0 550px;
+}
+.summary__reload {
+  flex: 1 1;
+  display: flex;
+  justify-content: center;
+}
+.summary__reload__button {
+  flex: 0 0 300px;
+  display: flex;
+  color: white;
+  font-weight: bold;
+  background-color: #4caf50;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.summary__reload__button:hover {
+  background-color: #46a049;
+}
+.summary__spacer {
+  flex: 0 0 550px;
+}
+
+.controls {
+  display: flex;
+  justify-content: space-between;
+}
+
+.filters,
+.collapse {
+  display: flex;
+  align-items: center;
+}
+.filters button,
+.collapse button {
+  color: #999;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.filters button:hover,
+.collapse button:hover {
+  color: #ccc;
+}
+
+.filter__label {
+  margin-right: 10px;
+}
+
+      </style>
+    
+  </head>
+  <body>
+    <h1 id="title">test_report.html</h1>
+    <p>Report generated on 20-Mar-2025 at 05:00:29 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a>
+        v4.1.1</p>
+    <div id="environment-header">
+      <h2>Environment</h2>
+    </div>
+    <table id="environment"></table>
+    <!-- TEMPLATES -->
+      <template id="template_environment_row">
+      <tr>
+        <td></td>
+        <td></td>
+      </tr>
+    </template>
+    <template id="template_results-table__body--empty">
+      <tbody class="results-table-row">
+        <tr id="not-found-message">
+          <td colspan="4">No results found. Check the filters.</th>
+        </tr>
+    </template>
+    <template id="template_results-table__tbody">
+      <tbody class="results-table-row">
+        <tr class="collapsible">
+        </tr>
+        <tr class="extras-row">
+          <td class="extra" colspan="4">
+            <div class="extraHTML"></div>
+            <div class="media">
+              <div class="media-container">
+                  <div class="media-container__nav--left"><</div>
+                  <div class="media-container__viewport">
+                    <img src="" />
+                    <video controls>
+                      <source src="" type="video/mp4">
+                    </video>
+                  </div>
+                  <div class="media-container__nav--right">></div>
+                </div>
+                <div class="media__name"></div>
+                <div class="media__counter"></div>
+            </div>
+            <div class="logwrapper">
+              <div class="logexpander"></div>
+              <div class="log"></div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </template>
+    <!-- END TEMPLATES -->
+    <div class="summary">
+      <div class="summary__data">
+        <h2>Summary</h2>
+        <div class="additional-summary prefix">
+        </div>
+        <p class="run-count">20 tests took 00:00:02.</p>
+        <p class="filter">(Un)check the boxes to filter the results.</p>
+        <div class="summary__reload">
+          <div class="summary__reload__button hidden" onclick="location.reload()">
+            <div>There are still tests running. <br />Reload this page to get the latest results!</div>
+          </div>
+        </div>
+        <div class="summary__spacer"></div>
+        <div class="controls">
+          <div class="filters">
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="failed" />
+            <span class="failed">2 Failed,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="passed" />
+            <span class="passed">18 Passed,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="skipped" disabled/>
+            <span class="skipped">0 Skipped,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="xfailed" disabled/>
+            <span class="xfailed">0 Expected failures,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="xpassed" disabled/>
+            <span class="xpassed">0 Unexpected passes,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="error" />
+            <span class="error">13 Errors,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="rerun" disabled/>
+            <span class="rerun">0 Reruns</span>
+          </div>
+          <div class="collapse">
+            <button id="show_all_details">Show all details</button>&nbsp;/&nbsp;<button id="hide_all_details">Hide all details</button>
+          </div>
+        </div>
+      </div>
+      <div class="additional-summary summary">
+      </div>
+      <div class="additional-summary postfix">
+      </div>
+    </div>
+    <table id="results-table">
+      <thead id="results-table-head">
+        <tr>
+          <th class="sortable" data-column-type="result">Result</th>
+          <th class="sortable" data-column-type="testId">Test</th>
+          <th class="sortable" data-column-type="duration">Duration</th>
+          <th>Links</th>
+        </tr>
+      </thead>
+    </table>
+  </body>
+  <footer>
+    <div id="data-container" data-jsonblob="{&#34;environment&#34;: {&#34;Python&#34;: &#34;3.9.21&#34;, &#34;Platform&#34;: &#34;macOS-15.3.1-arm64-arm-64bit&#34;, &#34;Packages&#34;: {&#34;pytest&#34;: &#34;8.3.4&#34;, &#34;pluggy&#34;: &#34;1.5.0&#34;}, &#34;Plugins&#34;: {&#34;html&#34;: &#34;4.1.1&#34;, &#34;metadata&#34;: &#34;3.1.1&#34;, &#34;cov&#34;: &#34;4.1.0&#34;, &#34;flask&#34;: &#34;1.2.0&#34;}}, &#34;tests&#34;: {&#34;tests/test_app.py::test_create_app&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_app.py::test_create_app&#34;, &#34;duration&#34;: &#34;137 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_app.py::test_create_app&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;137 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_app.py::test_login_success&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_app.py::test_login_success&#34;, &#34;duration&#34;: &#34;152 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_app.py::test_login_success&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;152 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_app.py::test_login_missing_fields&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_app.py::test_login_missing_fields&#34;, &#34;duration&#34;: &#34;1 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_app.py::test_login_missing_fields&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;1 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_app.py::test_login_invalid_credentials&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_app.py::test_login_invalid_credentials&#34;, &#34;duration&#34;: &#34;140 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_app.py::test_login_invalid_credentials&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;140 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_app.py::test_test_route_no_auth&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_app.py::test_test_route_no_auth&#34;, &#34;duration&#34;: &#34;1 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_app.py::test_test_route_no_auth&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;1 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_app.py::test_error_handlers&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_app.py::test_error_handlers&#34;, &#34;duration&#34;: &#34;1 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_app.py::test_error_handlers&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;1 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_auth.py::test_create_app&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_auth.py::test_create_app&#34;, &#34;duration&#34;: &#34;76 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_auth.py::test_create_app&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;76 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_auth.py::test_login_success&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_auth.py::test_login_success&#34;, &#34;duration&#34;: &#34;141 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_auth.py::test_login_success&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;141 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_auth.py::test_login_missing_fields&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_auth.py::test_login_missing_fields&#34;, &#34;duration&#34;: &#34;1 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_auth.py::test_login_missing_fields&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;1 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_auth.py::test_login_invalid_credentials&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_auth.py::test_login_invalid_credentials&#34;, &#34;duration&#34;: &#34;139 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_auth.py::test_login_invalid_credentials&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;139 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_auth.py::test_login_nonexistent_user&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_auth.py::test_login_nonexistent_user&#34;, &#34;duration&#34;: &#34;3 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_auth.py::test_login_nonexistent_user&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;3 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_auth.py::test_test_route_no_auth&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_auth.py::test_test_route_no_auth&#34;, &#34;duration&#34;: &#34;1 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_auth.py::test_test_route_no_auth&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;1 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_auth.py::test_invalid_token&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_auth.py::test_invalid_token&#34;, &#34;duration&#34;: &#34;1 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_auth.py::test_invalid_token&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;1 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_auth.py::test_malformed_token&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_auth.py::test_malformed_token&#34;, &#34;duration&#34;: &#34;1 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_auth.py::test_malformed_token&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;1 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_auth.py::test_error_handlers&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_auth.py::test_error_handlers&#34;, &#34;duration&#34;: &#34;1 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_auth.py::test_error_handlers&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;1 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_task_routes.py::test_create_task&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Error&#34;, &#34;testId&#34;: &#34;tests/test_task_routes.py::test_create_task::setup&#34;, &#34;duration&#34;: &#34;115 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Error&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_task_routes.py::test_create_task::setup&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;115 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;app = &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;, test_user = &amp;lt;User ff795de4-6b0d-4050-95c7-6ee355566e4b&amp;gt;\n\n    @pytest.fixture(scope=&amp;quot;function&amp;quot;)\n    def test_project(app, test_user):\n        &amp;quot;&amp;quot;&amp;quot;Create a test project.&amp;quot;&amp;quot;&amp;quot;\n        with app.app_context():\n            project = Project(\n                title=&amp;#x27;Test Project&amp;#x27;,\n                description=&amp;#x27;Test project description&amp;#x27;,\n                status=&amp;#x27;active&amp;#x27;,\n                team_id=None,  # No team for simplicity\n&amp;gt;               created_by=test_user.user_id\n            )\n\ntests/test_task_routes.py:80: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:482: in __get__\n    return self.impl.get(state, dict_)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:942: in get\n    value = self._fire_loader_callables(state, key, passive)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:973: in _fire_loader_callables\n    return state._load_expired(state, passive)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/state.py:712: in _load_expired\n    self.manager.expired_attribute_loader(self, toload, passive)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nmapper = &amp;lt;Mapper at 0x1076c1cd0; User&amp;gt;\nstate = &amp;lt;sqlalchemy.orm.state.InstanceState object at 0x1109c5e80&amp;gt;\nattribute_names = {&amp;#x27;created_at&amp;#x27;, &amp;#x27;created_tasks&amp;#x27;, &amp;#x27;email&amp;#x27;, &amp;#x27;last_login&amp;#x27;, &amp;#x27;memberships&amp;#x27;, &amp;#x27;password_hash&amp;#x27;, ...}\npassive = symbol(&amp;#x27;PASSIVE_OFF&amp;#x27;)\n\n    def load_scalar_attributes(mapper, state, attribute_names, passive):\n        &amp;quot;&amp;quot;&amp;quot;initiate a column-based attribute refresh operation.&amp;quot;&amp;quot;&amp;quot;\n    \n        # assert mapper is _state_mapper(state)\n        session = state.session\n        if not session:\n&amp;gt;           raise orm_exc.DetachedInstanceError(\n                &amp;quot;Instance %s is not bound to a Session; &amp;quot;\n                &amp;quot;attribute refresh operation cannot proceed&amp;quot; % (state_str(state))\n            )\nE           sqlalchemy.orm.exc.DetachedInstanceError: Instance &amp;lt;User at 0x110989790&amp;gt; is not bound to a Session; attribute refresh operation cannot proceed (Background on this error at: https://sqlalche.me/e/14/bhk3)\n\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/loading.py:1369: DetachedInstanceError\n&#34;}], &#34;tests/test_task_routes.py::test_create_task_missing_required_fields&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Error&#34;, &#34;testId&#34;: &#34;tests/test_task_routes.py::test_create_task_missing_required_fields::setup&#34;, &#34;duration&#34;: &#34;76 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Error&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_task_routes.py::test_create_task_missing_required_fields::setup&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;76 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;app = &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;, client = &amp;lt;FlaskClient &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;&amp;gt;\ntest_user = &amp;lt;User e5202e05-2e91-4fdd-95eb-779dfc50e248&amp;gt;\n\n    @pytest.fixture(scope=&amp;quot;function&amp;quot;)\n    def auth_headers(app, client, test_user):\n        &amp;quot;&amp;quot;&amp;quot;Get auth headers with JWT token.&amp;quot;&amp;quot;&amp;quot;\n        response = client.post(&amp;#x27;/login&amp;#x27;, json={\n            &amp;#x27;email&amp;#x27;: &amp;#x27;testuser@example.com&amp;#x27;,\n            &amp;#x27;password&amp;#x27;: &amp;#x27;password123&amp;#x27;\n        })\n&amp;gt;       assert response.status_code == 200, f&amp;quot;Login failed: {response.data}&amp;quot;\nE       AssertionError: Login failed: b&amp;#x27;{\\n  &amp;quot;error&amp;quot;: &amp;quot;Invalid credentials&amp;quot;\\n}\\n&amp;#x27;\nE       assert 401 == 200\nE        +  where 401 = &amp;lt;WrapperTestResponse streamed [401 UNAUTHORIZED]&amp;gt;.status_code\n\ntests/test_task_routes.py:111: AssertionError\n&#34;}], &#34;tests/test_task_routes.py::test_get_all_tasks&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Error&#34;, &#34;testId&#34;: &#34;tests/test_task_routes.py::test_get_all_tasks::setup&#34;, &#34;duration&#34;: &#34;72 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Error&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_task_routes.py::test_get_all_tasks::setup&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;72 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;app = &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;, test_user = &amp;lt;User 1306e332-d8b6-4330-93ab-a799367518ce&amp;gt;\n\n    @pytest.fixture(scope=&amp;quot;function&amp;quot;)\n    def test_project(app, test_user):\n        &amp;quot;&amp;quot;&amp;quot;Create a test project.&amp;quot;&amp;quot;&amp;quot;\n        with app.app_context():\n            project = Project(\n                title=&amp;#x27;Test Project&amp;#x27;,\n                description=&amp;#x27;Test project description&amp;#x27;,\n                status=&amp;#x27;active&amp;#x27;,\n                team_id=None,  # No team for simplicity\n&amp;gt;               created_by=test_user.user_id\n            )\n\ntests/test_task_routes.py:80: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:482: in __get__\n    return self.impl.get(state, dict_)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:942: in get\n    value = self._fire_loader_callables(state, key, passive)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:973: in _fire_loader_callables\n    return state._load_expired(state, passive)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/state.py:712: in _load_expired\n    self.manager.expired_attribute_loader(self, toload, passive)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nmapper = &amp;lt;Mapper at 0x1076c1cd0; User&amp;gt;\nstate = &amp;lt;sqlalchemy.orm.state.InstanceState object at 0x110a56f70&amp;gt;\nattribute_names = {&amp;#x27;created_at&amp;#x27;, &amp;#x27;created_tasks&amp;#x27;, &amp;#x27;email&amp;#x27;, &amp;#x27;last_login&amp;#x27;, &amp;#x27;memberships&amp;#x27;, &amp;#x27;password_hash&amp;#x27;, ...}\npassive = symbol(&amp;#x27;PASSIVE_OFF&amp;#x27;)\n\n    def load_scalar_attributes(mapper, state, attribute_names, passive):\n        &amp;quot;&amp;quot;&amp;quot;initiate a column-based attribute refresh operation.&amp;quot;&amp;quot;&amp;quot;\n    \n        # assert mapper is _state_mapper(state)\n        session = state.session\n        if not session:\n&amp;gt;           raise orm_exc.DetachedInstanceError(\n                &amp;quot;Instance %s is not bound to a Session; &amp;quot;\n                &amp;quot;attribute refresh operation cannot proceed&amp;quot; % (state_str(state))\n            )\nE           sqlalchemy.orm.exc.DetachedInstanceError: Instance &amp;lt;User at 0x110a565b0&amp;gt; is not bound to a Session; attribute refresh operation cannot proceed (Background on this error at: https://sqlalche.me/e/14/bhk3)\n\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/loading.py:1369: DetachedInstanceError\n&#34;}], &#34;tests/test_task_routes.py::test_get_tasks_with_filters&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Error&#34;, &#34;testId&#34;: &#34;tests/test_task_routes.py::test_get_tasks_with_filters::setup&#34;, &#34;duration&#34;: &#34;72 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Error&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_task_routes.py::test_get_tasks_with_filters::setup&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;72 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;app = &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;, test_user = &amp;lt;User ebdb686d-15e7-4f82-b4dd-0b2da6ea6ba7&amp;gt;\n\n    @pytest.fixture(scope=&amp;quot;function&amp;quot;)\n    def test_project(app, test_user):\n        &amp;quot;&amp;quot;&amp;quot;Create a test project.&amp;quot;&amp;quot;&amp;quot;\n        with app.app_context():\n            project = Project(\n                title=&amp;#x27;Test Project&amp;#x27;,\n                description=&amp;#x27;Test project description&amp;#x27;,\n                status=&amp;#x27;active&amp;#x27;,\n                team_id=None,  # No team for simplicity\n&amp;gt;               created_by=test_user.user_id\n            )\n\ntests/test_task_routes.py:80: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:482: in __get__\n    return self.impl.get(state, dict_)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:942: in get\n    value = self._fire_loader_callables(state, key, passive)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:973: in _fire_loader_callables\n    return state._load_expired(state, passive)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/state.py:712: in _load_expired\n    self.manager.expired_attribute_loader(self, toload, passive)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nmapper = &amp;lt;Mapper at 0x1076c1cd0; User&amp;gt;\nstate = &amp;lt;sqlalchemy.orm.state.InstanceState object at 0x110daf8b0&amp;gt;\nattribute_names = {&amp;#x27;created_at&amp;#x27;, &amp;#x27;created_tasks&amp;#x27;, &amp;#x27;email&amp;#x27;, &amp;#x27;last_login&amp;#x27;, &amp;#x27;memberships&amp;#x27;, &amp;#x27;password_hash&amp;#x27;, ...}\npassive = symbol(&amp;#x27;PASSIVE_OFF&amp;#x27;)\n\n    def load_scalar_attributes(mapper, state, attribute_names, passive):\n        &amp;quot;&amp;quot;&amp;quot;initiate a column-based attribute refresh operation.&amp;quot;&amp;quot;&amp;quot;\n    \n        # assert mapper is _state_mapper(state)\n        session = state.session\n        if not session:\n&amp;gt;           raise orm_exc.DetachedInstanceError(\n                &amp;quot;Instance %s is not bound to a Session; &amp;quot;\n                &amp;quot;attribute refresh operation cannot proceed&amp;quot; % (state_str(state))\n            )\nE           sqlalchemy.orm.exc.DetachedInstanceError: Instance &amp;lt;User at 0x110daf880&amp;gt; is not bound to a Session; attribute refresh operation cannot proceed (Background on this error at: https://sqlalche.me/e/14/bhk3)\n\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/loading.py:1369: DetachedInstanceError\n&#34;}], &#34;tests/test_task_routes.py::test_get_single_task&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Error&#34;, &#34;testId&#34;: &#34;tests/test_task_routes.py::test_get_single_task::setup&#34;, &#34;duration&#34;: &#34;72 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Error&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_task_routes.py::test_get_single_task::setup&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;72 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;app = &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;, test_user = &amp;lt;User d3557fbc-0c8f-4aa9-a5e3-e8a091d47292&amp;gt;\n\n    @pytest.fixture(scope=&amp;quot;function&amp;quot;)\n    def test_project(app, test_user):\n        &amp;quot;&amp;quot;&amp;quot;Create a test project.&amp;quot;&amp;quot;&amp;quot;\n        with app.app_context():\n            project = Project(\n                title=&amp;#x27;Test Project&amp;#x27;,\n                description=&amp;#x27;Test project description&amp;#x27;,\n                status=&amp;#x27;active&amp;#x27;,\n                team_id=None,  # No team for simplicity\n&amp;gt;               created_by=test_user.user_id\n            )\n\ntests/test_task_routes.py:80: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:482: in __get__\n    return self.impl.get(state, dict_)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:942: in get\n    value = self._fire_loader_callables(state, key, passive)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:973: in _fire_loader_callables\n    return state._load_expired(state, passive)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/state.py:712: in _load_expired\n    self.manager.expired_attribute_loader(self, toload, passive)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nmapper = &amp;lt;Mapper at 0x1076c1cd0; User&amp;gt;\nstate = &amp;lt;sqlalchemy.orm.state.InstanceState object at 0x1111ce7c0&amp;gt;\nattribute_names = {&amp;#x27;created_at&amp;#x27;, &amp;#x27;created_tasks&amp;#x27;, &amp;#x27;email&amp;#x27;, &amp;#x27;last_login&amp;#x27;, &amp;#x27;memberships&amp;#x27;, &amp;#x27;password_hash&amp;#x27;, ...}\npassive = symbol(&amp;#x27;PASSIVE_OFF&amp;#x27;)\n\n    def load_scalar_attributes(mapper, state, attribute_names, passive):\n        &amp;quot;&amp;quot;&amp;quot;initiate a column-based attribute refresh operation.&amp;quot;&amp;quot;&amp;quot;\n    \n        # assert mapper is _state_mapper(state)\n        session = state.session\n        if not session:\n&amp;gt;           raise orm_exc.DetachedInstanceError(\n                &amp;quot;Instance %s is not bound to a Session; &amp;quot;\n                &amp;quot;attribute refresh operation cannot proceed&amp;quot; % (state_str(state))\n            )\nE           sqlalchemy.orm.exc.DetachedInstanceError: Instance &amp;lt;User at 0x1111ce790&amp;gt; is not bound to a Session; attribute refresh operation cannot proceed (Background on this error at: https://sqlalche.me/e/14/bhk3)\n\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/loading.py:1369: DetachedInstanceError\n&#34;}], &#34;tests/test_task_routes.py::test_get_nonexistent_task&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Error&#34;, &#34;testId&#34;: &#34;tests/test_task_routes.py::test_get_nonexistent_task::setup&#34;, &#34;duration&#34;: &#34;77 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Error&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_task_routes.py::test_get_nonexistent_task::setup&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;77 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;app = &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;, client = &amp;lt;FlaskClient &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;&amp;gt;\ntest_user = &amp;lt;User 600b8ec4-c9b3-4503-ab5c-b0d2b85f40af&amp;gt;\n\n    @pytest.fixture(scope=&amp;quot;function&amp;quot;)\n    def auth_headers(app, client, test_user):\n        &amp;quot;&amp;quot;&amp;quot;Get auth headers with JWT token.&amp;quot;&amp;quot;&amp;quot;\n        response = client.post(&amp;#x27;/login&amp;#x27;, json={\n            &amp;#x27;email&amp;#x27;: &amp;#x27;testuser@example.com&amp;#x27;,\n            &amp;#x27;password&amp;#x27;: &amp;#x27;password123&amp;#x27;\n        })\n&amp;gt;       assert response.status_code == 200, f&amp;quot;Login failed: {response.data}&amp;quot;\nE       AssertionError: Login failed: b&amp;#x27;{\\n  &amp;quot;error&amp;quot;: &amp;quot;Invalid credentials&amp;quot;\\n}\\n&amp;#x27;\nE       assert 401 == 200\nE        +  where 401 = &amp;lt;WrapperTestResponse streamed [401 UNAUTHORIZED]&amp;gt;.status_code\n\ntests/test_task_routes.py:111: AssertionError\n&#34;}], &#34;tests/test_task_routes.py::test_update_task&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Error&#34;, &#34;testId&#34;: &#34;tests/test_task_routes.py::test_update_task::setup&#34;, &#34;duration&#34;: &#34;75 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Error&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_task_routes.py::test_update_task::setup&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;75 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;app = &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;, test_user = &amp;lt;User c4487298-a7ec-468d-9480-dcfbf0f4a2de&amp;gt;\n\n    @pytest.fixture(scope=&amp;quot;function&amp;quot;)\n    def test_project(app, test_user):\n        &amp;quot;&amp;quot;&amp;quot;Create a test project.&amp;quot;&amp;quot;&amp;quot;\n        with app.app_context():\n            project = Project(\n                title=&amp;#x27;Test Project&amp;#x27;,\n                description=&amp;#x27;Test project description&amp;#x27;,\n                status=&amp;#x27;active&amp;#x27;,\n                team_id=None,  # No team for simplicity\n&amp;gt;               created_by=test_user.user_id\n            )\n\ntests/test_task_routes.py:80: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:482: in __get__\n    return self.impl.get(state, dict_)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:942: in get\n    value = self._fire_loader_callables(state, key, passive)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:973: in _fire_loader_callables\n    return state._load_expired(state, passive)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/state.py:712: in _load_expired\n    self.manager.expired_attribute_loader(self, toload, passive)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nmapper = &amp;lt;Mapper at 0x1076c1cd0; User&amp;gt;\nstate = &amp;lt;sqlalchemy.orm.state.InstanceState object at 0x110f3b8e0&amp;gt;\nattribute_names = {&amp;#x27;created_at&amp;#x27;, &amp;#x27;created_tasks&amp;#x27;, &amp;#x27;email&amp;#x27;, &amp;#x27;last_login&amp;#x27;, &amp;#x27;memberships&amp;#x27;, &amp;#x27;password_hash&amp;#x27;, ...}\npassive = symbol(&amp;#x27;PASSIVE_OFF&amp;#x27;)\n\n    def load_scalar_attributes(mapper, state, attribute_names, passive):\n        &amp;quot;&amp;quot;&amp;quot;initiate a column-based attribute refresh operation.&amp;quot;&amp;quot;&amp;quot;\n    \n        # assert mapper is _state_mapper(state)\n        session = state.session\n        if not session:\n&amp;gt;           raise orm_exc.DetachedInstanceError(\n                &amp;quot;Instance %s is not bound to a Session; &amp;quot;\n                &amp;quot;attribute refresh operation cannot proceed&amp;quot; % (state_str(state))\n            )\nE           sqlalchemy.orm.exc.DetachedInstanceError: Instance &amp;lt;User at 0x110f3bd00&amp;gt; is not bound to a Session; attribute refresh operation cannot proceed (Background on this error at: https://sqlalche.me/e/14/bhk3)\n\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/loading.py:1369: DetachedInstanceError\n&#34;}], &#34;tests/test_task_routes.py::test_update_nonexistent_task&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Error&#34;, &#34;testId&#34;: &#34;tests/test_task_routes.py::test_update_nonexistent_task::setup&#34;, &#34;duration&#34;: &#34;74 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Error&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_task_routes.py::test_update_nonexistent_task::setup&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;74 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;app = &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;, client = &amp;lt;FlaskClient &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;&amp;gt;\ntest_user = &amp;lt;User 336d6fc5-218d-4196-a5d3-750cef402ee9&amp;gt;\n\n    @pytest.fixture(scope=&amp;quot;function&amp;quot;)\n    def auth_headers(app, client, test_user):\n        &amp;quot;&amp;quot;&amp;quot;Get auth headers with JWT token.&amp;quot;&amp;quot;&amp;quot;\n        response = client.post(&amp;#x27;/login&amp;#x27;, json={\n            &amp;#x27;email&amp;#x27;: &amp;#x27;testuser@example.com&amp;#x27;,\n            &amp;#x27;password&amp;#x27;: &amp;#x27;password123&amp;#x27;\n        })\n&amp;gt;       assert response.status_code == 200, f&amp;quot;Login failed: {response.data}&amp;quot;\nE       AssertionError: Login failed: b&amp;#x27;{\\n  &amp;quot;error&amp;quot;: &amp;quot;Invalid credentials&amp;quot;\\n}\\n&amp;#x27;\nE       assert 401 == 200\nE        +  where 401 = &amp;lt;WrapperTestResponse streamed [401 UNAUTHORIZED]&amp;gt;.status_code\n\ntests/test_task_routes.py:111: AssertionError\n&#34;}], &#34;tests/test_task_routes.py::test_update_task_invalid_status&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Error&#34;, &#34;testId&#34;: &#34;tests/test_task_routes.py::test_update_task_invalid_status::setup&#34;, &#34;duration&#34;: &#34;73 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Error&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_task_routes.py::test_update_task_invalid_status::setup&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;73 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;app = &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;, test_user = &amp;lt;User 3f901895-dcbe-4f2d-bc84-c1d9c40bcbb5&amp;gt;\n\n    @pytest.fixture(scope=&amp;quot;function&amp;quot;)\n    def test_project(app, test_user):\n        &amp;quot;&amp;quot;&amp;quot;Create a test project.&amp;quot;&amp;quot;&amp;quot;\n        with app.app_context():\n            project = Project(\n                title=&amp;#x27;Test Project&amp;#x27;,\n                description=&amp;#x27;Test project description&amp;#x27;,\n                status=&amp;#x27;active&amp;#x27;,\n                team_id=None,  # No team for simplicity\n&amp;gt;               created_by=test_user.user_id\n            )\n\ntests/test_task_routes.py:80: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:482: in __get__\n    return self.impl.get(state, dict_)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:942: in get\n    value = self._fire_loader_callables(state, key, passive)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:973: in _fire_loader_callables\n    return state._load_expired(state, passive)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/state.py:712: in _load_expired\n    self.manager.expired_attribute_loader(self, toload, passive)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nmapper = &amp;lt;Mapper at 0x1076c1cd0; User&amp;gt;\nstate = &amp;lt;sqlalchemy.orm.state.InstanceState object at 0x1110a4a30&amp;gt;\nattribute_names = {&amp;#x27;created_at&amp;#x27;, &amp;#x27;created_tasks&amp;#x27;, &amp;#x27;email&amp;#x27;, &amp;#x27;last_login&amp;#x27;, &amp;#x27;memberships&amp;#x27;, &amp;#x27;password_hash&amp;#x27;, ...}\npassive = symbol(&amp;#x27;PASSIVE_OFF&amp;#x27;)\n\n    def load_scalar_attributes(mapper, state, attribute_names, passive):\n        &amp;quot;&amp;quot;&amp;quot;initiate a column-based attribute refresh operation.&amp;quot;&amp;quot;&amp;quot;\n    \n        # assert mapper is _state_mapper(state)\n        session = state.session\n        if not session:\n&amp;gt;           raise orm_exc.DetachedInstanceError(\n                &amp;quot;Instance %s is not bound to a Session; &amp;quot;\n                &amp;quot;attribute refresh operation cannot proceed&amp;quot; % (state_str(state))\n            )\nE           sqlalchemy.orm.exc.DetachedInstanceError: Instance &amp;lt;User at 0x1110a4af0&amp;gt; is not bound to a Session; attribute refresh operation cannot proceed (Background on this error at: https://sqlalche.me/e/14/bhk3)\n\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/loading.py:1369: DetachedInstanceError\n&#34;}], &#34;tests/test_task_routes.py::test_delete_task&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Error&#34;, &#34;testId&#34;: &#34;tests/test_task_routes.py::test_delete_task::setup&#34;, &#34;duration&#34;: &#34;73 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Error&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_task_routes.py::test_delete_task::setup&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;73 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;app = &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;, test_user = &amp;lt;User 36d8672c-5cc6-4914-83e3-38921672bfad&amp;gt;\n\n    @pytest.fixture(scope=&amp;quot;function&amp;quot;)\n    def test_project(app, test_user):\n        &amp;quot;&amp;quot;&amp;quot;Create a test project.&amp;quot;&amp;quot;&amp;quot;\n        with app.app_context():\n            project = Project(\n                title=&amp;#x27;Test Project&amp;#x27;,\n                description=&amp;#x27;Test project description&amp;#x27;,\n                status=&amp;#x27;active&amp;#x27;,\n                team_id=None,  # No team for simplicity\n&amp;gt;               created_by=test_user.user_id\n            )\n\ntests/test_task_routes.py:80: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:482: in __get__\n    return self.impl.get(state, dict_)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:942: in get\n    value = self._fire_loader_callables(state, key, passive)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/attributes.py:973: in _fire_loader_callables\n    return state._load_expired(state, passive)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/state.py:712: in _load_expired\n    self.manager.expired_attribute_loader(self, toload, passive)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nmapper = &amp;lt;Mapper at 0x1076c1cd0; User&amp;gt;\nstate = &amp;lt;sqlalchemy.orm.state.InstanceState object at 0x110f07580&amp;gt;\nattribute_names = {&amp;#x27;created_at&amp;#x27;, &amp;#x27;created_tasks&amp;#x27;, &amp;#x27;email&amp;#x27;, &amp;#x27;last_login&amp;#x27;, &amp;#x27;memberships&amp;#x27;, &amp;#x27;password_hash&amp;#x27;, ...}\npassive = symbol(&amp;#x27;PASSIVE_OFF&amp;#x27;)\n\n    def load_scalar_attributes(mapper, state, attribute_names, passive):\n        &amp;quot;&amp;quot;&amp;quot;initiate a column-based attribute refresh operation.&amp;quot;&amp;quot;&amp;quot;\n    \n        # assert mapper is _state_mapper(state)\n        session = state.session\n        if not session:\n&amp;gt;           raise orm_exc.DetachedInstanceError(\n                &amp;quot;Instance %s is not bound to a Session; &amp;quot;\n                &amp;quot;attribute refresh operation cannot proceed&amp;quot; % (state_str(state))\n            )\nE           sqlalchemy.orm.exc.DetachedInstanceError: Instance &amp;lt;User at 0x110f07f70&amp;gt; is not bound to a Session; attribute refresh operation cannot proceed (Background on this error at: https://sqlalche.me/e/14/bhk3)\n\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/sqlalchemy/orm/loading.py:1369: DetachedInstanceError\n&#34;}], &#34;tests/test_task_routes.py::test_delete_nonexistent_task&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Error&#34;, &#34;testId&#34;: &#34;tests/test_task_routes.py::test_delete_nonexistent_task::setup&#34;, &#34;duration&#34;: &#34;74 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Error&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_task_routes.py::test_delete_nonexistent_task::setup&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;74 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;app = &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;, client = &amp;lt;FlaskClient &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;&amp;gt;\ntest_user = &amp;lt;User 35acb324-18ff-42f7-b3b6-b4586c042c03&amp;gt;\n\n    @pytest.fixture(scope=&amp;quot;function&amp;quot;)\n    def auth_headers(app, client, test_user):\n        &amp;quot;&amp;quot;&amp;quot;Get auth headers with JWT token.&amp;quot;&amp;quot;&amp;quot;\n        response = client.post(&amp;#x27;/login&amp;#x27;, json={\n            &amp;#x27;email&amp;#x27;: &amp;#x27;testuser@example.com&amp;#x27;,\n            &amp;#x27;password&amp;#x27;: &amp;#x27;password123&amp;#x27;\n        })\n&amp;gt;       assert response.status_code == 200, f&amp;quot;Login failed: {response.data}&amp;quot;\nE       AssertionError: Login failed: b&amp;#x27;{\\n  &amp;quot;error&amp;quot;: &amp;quot;Invalid credentials&amp;quot;\\n}\\n&amp;#x27;\nE       assert 401 == 200\nE        +  where 401 = &amp;lt;WrapperTestResponse streamed [401 UNAUTHORIZED]&amp;gt;.status_code\n\ntests/test_task_routes.py:111: AssertionError\n&#34;}], &#34;tests/test_team_routes.py::test_create_team&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Error&#34;, &#34;testId&#34;: &#34;tests/test_team_routes.py::test_create_team::setup&#34;, &#34;duration&#34;: &#34;0 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Error&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_team_routes.py::test_create_team::setup&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;0 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;file /Users/abdullah/Desktop/studies/web/project/Task-management-LLM-API/tests/test_team_routes.py, line 8\n  def test_create_team(client):\nfile /opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/pytest_flask/plugin.py, line 116\n  @pytest.fixture(autouse=True)\n  def _configure_application(request, monkeypatch):\nE       fixture &amp;#x27;app&amp;#x27; not found\n&amp;gt;       available fixtures: _configure_application, _monkeypatch_response_class, _push_request_context, accept_any, accept_json, accept_jsonp, accept_mimetype, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, client, client_class, config, cov, doctest_namespace, extra, extras, include_metadata_in_junit_xml, live_server, metadata, monkeypatch, no_cover, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, request_ctx, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory\n&amp;gt;       use &amp;#x27;pytest --fixtures [testpath]&amp;#x27; for help on them.\n\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/pytest_flask/plugin.py:116\n&#34;}], &#34;tests/test_team_routes.py::test_add_member&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Error&#34;, &#34;testId&#34;: &#34;tests/test_team_routes.py::test_add_member::setup&#34;, &#34;duration&#34;: &#34;0 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Error&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_team_routes.py::test_add_member::setup&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;0 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;file /Users/abdullah/Desktop/studies/web/project/Task-management-LLM-API/tests/test_team_routes.py, line 14\n  def test_add_member(client, test_team, test_user):\nfile /opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/pytest_flask/plugin.py, line 116\n  @pytest.fixture(autouse=True)\n  def _configure_application(request, monkeypatch):\nE       fixture &amp;#x27;app&amp;#x27; not found\n&amp;gt;       available fixtures: _configure_application, _monkeypatch_response_class, _push_request_context, accept_any, accept_json, accept_jsonp, accept_mimetype, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, client, client_class, config, cov, doctest_namespace, extra, extras, include_metadata_in_junit_xml, live_server, metadata, monkeypatch, no_cover, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, request_ctx, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory\n&amp;gt;       use &amp;#x27;pytest --fixtures [testpath]&amp;#x27; for help on them.\n\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/pytest_flask/plugin.py:116\n&#34;}], &#34;tests/test_user_routes.py::test_create_user&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_user_routes.py::test_create_user&#34;, &#34;duration&#34;: &#34;142 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_user_routes.py::test_create_user&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;142 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_user_routes.py::test_create_user_duplicate_email&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_user_routes.py::test_create_user_duplicate_email&#34;, &#34;duration&#34;: &#34;83 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_user_routes.py::test_create_user_duplicate_email&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;83 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_user_routes.py::test_create_user_duplicate_username&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/test_user_routes.py::test_create_user_duplicate_username&#34;, &#34;duration&#34;: &#34;82 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_user_routes.py::test_create_user_duplicate_username&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;82 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/test_user_routes.py::test_create_user_invalid_data&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/test_user_routes.py::test_create_user_invalid_data&#34;, &#34;duration&#34;: &#34;79 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_user_routes.py::test_create_user_invalid_data&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;79 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;client = &amp;lt;FlaskClient &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;&amp;gt;, app = &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;\n\n    def test_create_user_invalid_data(client, app):\n        &amp;quot;&amp;quot;&amp;quot;Test creating a user with invalid data.&amp;quot;&amp;quot;&amp;quot;\n        with app.app_context():\n            response = client.post(&amp;#x27;/users&amp;#x27;, json={\n                &amp;#x27;username&amp;#x27;: &amp;#x27;invaliduser&amp;#x27;,\n                &amp;#x27;email&amp;#x27;: &amp;#x27;invalid-email&amp;#x27;,  # Invalid email format\n                &amp;#x27;password&amp;#x27;: &amp;#x27;password123&amp;#x27;\n            })\n&amp;gt;           assert response.status_code == 400\nE           assert 201 == 400\nE            +  where 201 = &amp;lt;WrapperTestResponse streamed [201 CREATED]&amp;gt;.status_code\n\ntests/test_user_routes.py:133: AssertionError\n&#34;}], &#34;tests/test_user_routes.py::test_get_user&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/test_user_routes.py::test_get_user&#34;, &#34;duration&#34;: &#34;229 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/test_user_routes.py::test_get_user&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;229 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;client = &amp;lt;FlaskClient &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;&amp;gt;\nauth_headers = {&amp;#x27;Authorization&amp;#x27;: &amp;#x27;Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc0MjQzOTYyOSwianRpIjoiYTA...S1hYWE5LTY5ODdjYmNkZTY2YyIsIm5iZiI6MTc0MjQzOTYyOSwiZXhwIjoxNzQyNDQzMjI5fQ.5ZTL9S98in5RR9NCZji-trutfSjdb7WJmQjuAKtrpaM&amp;#x27;}\napp = &amp;lt;Flask &amp;#x27;app&amp;#x27;&amp;gt;\n\n    def test_get_user(client, auth_headers, app):\n        &amp;quot;&amp;quot;&amp;quot;Test getting a user by ID.&amp;quot;&amp;quot;&amp;quot;\n        with app.app_context():\n            # Create a user\n            user = User(\n                username=&amp;#x27;getuser&amp;#x27;,\n                email=&amp;#x27;get@example.com&amp;#x27;,\n                password_hash=generate_password_hash(&amp;#x27;password123&amp;#x27;)\n            )\n            db.session.add(user)\n            db.session.commit()\n            user_id = user.user_id\n    \n&amp;gt;           response = client.get(f&amp;#x27;/users/{user_id}&amp;#x27;, headers=auth_headers)\n\ntests/test_user_routes.py:149: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/werkzeug/test.py:1127: in get\n    return self.open(*args, **kw)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/flask/testing.py:216: in open\n    return super().open(  # type: ignore\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/werkzeug/test.py:1072: in open\n    response = self.run_wsgi_app(request.environ, buffered=buffered)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/werkzeug/test.py:943: in run_wsgi_app\n    rv = run_wsgi_app(self.application, environ, buffered=buffered)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/werkzeug/test.py:1229: in run_wsgi_app\n    app_rv = app(environ, start_response)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/flask/app.py:2088: in __call__\n    return self.wsgi_app(environ, start_response)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/flask/app.py:2073: in wsgi_app\n    response = self.handle_exception(e)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/flask/app.py:2070: in wsgi_app\n    response = self.full_dispatch_request()\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/flask/app.py:1515: in full_dispatch_request\n    rv = self.handle_user_exception(e)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/flask/app.py:1513: in full_dispatch_request\n    rv = self.dispatch_request()\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/flask/app.py:1499: in dispatch_request\n    return self.ensure_sync(self.view_functions[rule.endpoint])(**req.view_args)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/flask_jwt_extended/view_decorators.py:154: in decorator\n    return current_app.ensure_sync(fn)(*args, **kwargs)\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/flask_caching/__init__.py:413: in decorated_function\n    self.cache.set(\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/cachelib/simple.py:80: in set\n    self._cache[key] = (expires, self.serializer.dumps(value))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself = &amp;lt;cachelib.serializers.SimpleSerializer object at 0x10732c760&amp;gt;\nvalue = (&amp;lt;&amp;lt;class &amp;#x27;pytest_flask.plugin.JSONResponse&amp;#x27;&amp;gt; 282 bytes [200 OK]&amp;gt;, 200)\nprotocol = 5\n\n    def dumps(self, value: _t.Any, protocol: int = pickle.HIGHEST_PROTOCOL) -&amp;gt; bytes:\n        try:\n            serialized = pickle.dumps(value, protocol)\n        except (pickle.PickleError, pickle.PicklingError) as e:\n            self._warn(e)\n&amp;gt;       return serialized\nE       UnboundLocalError: local variable &amp;#x27;serialized&amp;#x27; referenced before assignment\n\n/opt/anaconda3/envs/flask_env/lib/python3.9/site-packages/cachelib/serializers.py:46: UnboundLocalError\n\n------------------------------ Captured log call -------------------------------\nWARNING  root:serializers.py:15 An exception has been raised during a pickling operation: Can&amp;#x27;t pickle &amp;lt;class &amp;#x27;pytest_flask.plugin.&amp;lt;class &amp;#x27;pytest_flask.plugin.JSONResponse&amp;#x27;&amp;gt;&amp;#x27;&amp;gt;: attribute lookup &amp;lt;class &amp;#x27;pytest_flask.plugin.JSONResponse&amp;#x27;&amp;gt; on pytest_flask.plugin failed\n\n&#34;}]}, &#34;renderCollapsed&#34;: [&#34;passed&#34;], &#34;initialSort&#34;: &#34;result&#34;, &#34;title&#34;: &#34;test_report.html&#34;}"></div>
+    <script>
+      (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+const { getCollapsedCategory, setCollapsedIds } = require('./storage.js')
+
+class DataManager {
+    setManager(data) {
+        const collapsedCategories = [...getCollapsedCategory(data.renderCollapsed)]
+        const collapsedIds = []
+        const tests = Object.values(data.tests).flat().map((test, index) => {
+            const collapsed = collapsedCategories.includes(test.result.toLowerCase())
+            const id = `test_${index}`
+            if (collapsed) {
+                collapsedIds.push(id)
+            }
+            return {
+                ...test,
+                id,
+                collapsed,
+            }
+        })
+        const dataBlob = { ...data, tests }
+        this.data = { ...dataBlob }
+        this.renderData = { ...dataBlob }
+        setCollapsedIds(collapsedIds)
+    }
+
+    get allData() {
+        return { ...this.data }
+    }
+
+    resetRender() {
+        this.renderData = { ...this.data }
+    }
+
+    setRender(data) {
+        this.renderData.tests = [...data]
+    }
+
+    toggleCollapsedItem(id) {
+        this.renderData.tests = this.renderData.tests.map((test) =>
+            test.id === id ? { ...test, collapsed: !test.collapsed } : test,
+        )
+    }
+
+    set allCollapsed(collapsed) {
+        this.renderData = { ...this.renderData, tests: [...this.renderData.tests.map((test) => (
+            { ...test, collapsed }
+        ))] }
+    }
+
+    get testSubset() {
+        return [...this.renderData.tests]
+    }
+
+    get environment() {
+        return this.renderData.environment
+    }
+
+    get initialSort() {
+        return this.data.initialSort
+    }
+}
+
+module.exports = {
+    manager: new DataManager(),
+}
+
+},{"./storage.js":8}],2:[function(require,module,exports){
+const mediaViewer = require('./mediaviewer.js')
+const templateEnvRow = document.getElementById('template_environment_row')
+const templateResult = document.getElementById('template_results-table__tbody')
+
+function htmlToElements(html) {
+    const temp = document.createElement('template')
+    temp.innerHTML = html
+    return temp.content.childNodes
+}
+
+const find = (selector, elem) => {
+    if (!elem) {
+        elem = document
+    }
+    return elem.querySelector(selector)
+}
+
+const findAll = (selector, elem) => {
+    if (!elem) {
+        elem = document
+    }
+    return [...elem.querySelectorAll(selector)]
+}
+
+const dom = {
+    getStaticRow: (key, value) => {
+        const envRow = templateEnvRow.content.cloneNode(true)
+        const isObj = typeof value === 'object' && value !== null
+        const values = isObj ? Object.keys(value).map((k) => `${k}: ${value[k]}`) : null
+
+        const valuesElement = htmlToElements(
+            values ? `<ul>${values.map((val) => `<li>${val}</li>`).join('')}<ul>` : `<div>${value}</div>`)[0]
+        const td = findAll('td', envRow)
+        td[0].textContent = key
+        td[1].appendChild(valuesElement)
+
+        return envRow
+    },
+    getResultTBody: ({ testId, id, log, extras, resultsTableRow, tableHtml, result, collapsed }) => {
+        const resultBody = templateResult.content.cloneNode(true)
+        resultBody.querySelector('tbody').classList.add(result.toLowerCase())
+        resultBody.querySelector('tbody').id = testId
+        resultBody.querySelector('.collapsible').dataset.id = id
+
+        resultsTableRow.forEach((html) => {
+            const t = document.createElement('template')
+            t.innerHTML = html
+            resultBody.querySelector('.collapsible').appendChild(t.content)
+        })
+
+        if (log) {
+            // Wrap lines starting with "E" with span.error to color those lines red
+            const wrappedLog = log.replace(/^E.*$/gm, (match) => `<span class="error">${match}</span>`)
+            resultBody.querySelector('.log').innerHTML = wrappedLog
+        } else {
+            resultBody.querySelector('.log').remove()
+        }
+
+        if (collapsed) {
+            resultBody.querySelector('.collapsible > td')?.classList.add('collapsed')
+            resultBody.querySelector('.extras-row').classList.add('hidden')
+        } else {
+            resultBody.querySelector('.collapsible > td')?.classList.remove('collapsed')
+        }
+
+        const media = []
+        extras?.forEach(({ name, format_type, content }) => {
+            if (['image', 'video'].includes(format_type)) {
+                media.push({ path: content, name, format_type })
+            }
+
+            if (format_type === 'html') {
+                resultBody.querySelector('.extraHTML').insertAdjacentHTML('beforeend', `<div>${content}</div>`)
+            }
+        })
+        mediaViewer.setup(resultBody, media)
+
+        // Add custom html from the pytest_html_results_table_html hook
+        tableHtml?.forEach((item) => {
+            resultBody.querySelector('td[class="extra"]').insertAdjacentHTML('beforeend', item)
+        })
+
+        return resultBody
+    },
+}
+
+module.exports = {
+    dom,
+    htmlToElements,
+    find,
+    findAll,
+}
+
+},{"./mediaviewer.js":6}],3:[function(require,module,exports){
+const { manager } = require('./datamanager.js')
+const { doSort } = require('./sort.js')
+const storageModule = require('./storage.js')
+
+const getFilteredSubSet = (filter) =>
+    manager.allData.tests.filter(({ result }) => filter.includes(result.toLowerCase()))
+
+const doInitFilter = () => {
+    const currentFilter = storageModule.getVisible()
+    const filteredSubset = getFilteredSubSet(currentFilter)
+    manager.setRender(filteredSubset)
+}
+
+const doFilter = (type, show) => {
+    if (show) {
+        storageModule.showCategory(type)
+    } else {
+        storageModule.hideCategory(type)
+    }
+
+    const currentFilter = storageModule.getVisible()
+    const filteredSubset = getFilteredSubSet(currentFilter)
+    manager.setRender(filteredSubset)
+
+    const sortColumn = storageModule.getSort()
+    doSort(sortColumn, true)
+}
+
+module.exports = {
+    doFilter,
+    doInitFilter,
+}
+
+},{"./datamanager.js":1,"./sort.js":7,"./storage.js":8}],4:[function(require,module,exports){
+const { redraw, bindEvents, renderStatic } = require('./main.js')
+const { doInitFilter } = require('./filter.js')
+const { doInitSort } = require('./sort.js')
+const { manager } = require('./datamanager.js')
+const data = JSON.parse(document.getElementById('data-container').dataset.jsonblob)
+
+function init() {
+    manager.setManager(data)
+    doInitFilter()
+    doInitSort()
+    renderStatic()
+    redraw()
+    bindEvents()
+}
+
+init()
+
+},{"./datamanager.js":1,"./filter.js":3,"./main.js":5,"./sort.js":7}],5:[function(require,module,exports){
+const { dom, find, findAll } = require('./dom.js')
+const { manager } = require('./datamanager.js')
+const { doSort } = require('./sort.js')
+const { doFilter } = require('./filter.js')
+const {
+    getVisible,
+    getCollapsedIds,
+    setCollapsedIds,
+    getSort,
+    getSortDirection,
+    possibleFilters,
+} = require('./storage.js')
+
+const removeChildren = (node) => {
+    while (node.firstChild) {
+        node.removeChild(node.firstChild)
+    }
+}
+
+const renderStatic = () => {
+    const renderEnvironmentTable = () => {
+        const environment = manager.environment
+        const rows = Object.keys(environment).map((key) => dom.getStaticRow(key, environment[key]))
+        const table = document.getElementById('environment')
+        removeChildren(table)
+        rows.forEach((row) => table.appendChild(row))
+    }
+    renderEnvironmentTable()
+}
+
+const addItemToggleListener = (elem) => {
+    elem.addEventListener('click', ({ target }) => {
+        const id = target.parentElement.dataset.id
+        manager.toggleCollapsedItem(id)
+
+        const collapsedIds = getCollapsedIds()
+        if (collapsedIds.includes(id)) {
+            const updated = collapsedIds.filter((item) => item !== id)
+            setCollapsedIds(updated)
+        } else {
+            collapsedIds.push(id)
+            setCollapsedIds(collapsedIds)
+        }
+        redraw()
+    })
+}
+
+const renderContent = (tests) => {
+    const sortAttr = getSort(manager.initialSort)
+    const sortAsc = JSON.parse(getSortDirection())
+    const rows = tests.map(dom.getResultTBody)
+    const table = document.getElementById('results-table')
+    const tableHeader = document.getElementById('results-table-head')
+
+    const newTable = document.createElement('table')
+    newTable.id = 'results-table'
+
+    // remove all sorting classes and set the relevant
+    findAll('.sortable', tableHeader).forEach((elem) => elem.classList.remove('asc', 'desc'))
+    tableHeader.querySelector(`.sortable[data-column-type="${sortAttr}"]`)?.classList.add(sortAsc ? 'desc' : 'asc')
+    newTable.appendChild(tableHeader)
+
+    if (!rows.length) {
+        const emptyTable = document.getElementById('template_results-table__body--empty').content.cloneNode(true)
+        newTable.appendChild(emptyTable)
+    } else {
+        rows.forEach((row) => {
+            if (!!row) {
+                findAll('.collapsible td:not(.col-links', row).forEach(addItemToggleListener)
+                find('.logexpander', row).addEventListener('click',
+                    (evt) => evt.target.parentNode.classList.toggle('expanded'),
+                )
+                newTable.appendChild(row)
+            }
+        })
+    }
+
+    table.replaceWith(newTable)
+}
+
+const renderDerived = () => {
+    const currentFilter = getVisible()
+    possibleFilters.forEach((result) => {
+        const input = document.querySelector(`input[data-test-result="${result}"]`)
+        input.checked = currentFilter.includes(result)
+    })
+}
+
+const bindEvents = () => {
+    const filterColumn = (evt) => {
+        const { target: element } = evt
+        const { testResult } = element.dataset
+
+        doFilter(testResult, element.checked)
+        const collapsedIds = getCollapsedIds()
+        const updated = manager.renderData.tests.map((test) => {
+            return {
+                ...test,
+                collapsed: collapsedIds.includes(test.id),
+            }
+        })
+        manager.setRender(updated)
+        redraw()
+    }
+
+    const header = document.getElementById('environment-header')
+    header.addEventListener('click', () => {
+        const table = document.getElementById('environment')
+        table.classList.toggle('hidden')
+        header.classList.toggle('collapsed')
+    })
+
+    findAll('input[name="filter_checkbox"]').forEach((elem) => {
+        elem.addEventListener('click', filterColumn)
+    })
+
+    findAll('.sortable').forEach((elem) => {
+        elem.addEventListener('click', (evt) => {
+            const { target: element } = evt
+            const { columnType } = element.dataset
+            doSort(columnType)
+            redraw()
+        })
+    })
+
+    document.getElementById('show_all_details').addEventListener('click', () => {
+        manager.allCollapsed = false
+        setCollapsedIds([])
+        redraw()
+    })
+    document.getElementById('hide_all_details').addEventListener('click', () => {
+        manager.allCollapsed = true
+        const allIds = manager.renderData.tests.map((test) => test.id)
+        setCollapsedIds(allIds)
+        redraw()
+    })
+}
+
+const redraw = () => {
+    const { testSubset } = manager
+
+    renderContent(testSubset)
+    renderDerived()
+}
+
+module.exports = {
+    redraw,
+    bindEvents,
+    renderStatic,
+}
+
+},{"./datamanager.js":1,"./dom.js":2,"./filter.js":3,"./sort.js":7,"./storage.js":8}],6:[function(require,module,exports){
+class MediaViewer {
+    constructor(assets) {
+        this.assets = assets
+        this.index = 0
+    }
+
+    nextActive() {
+        this.index = this.index === this.assets.length - 1 ? 0 : this.index + 1
+        return [this.activeFile, this.index]
+    }
+
+    prevActive() {
+        this.index = this.index === 0 ? this.assets.length - 1 : this.index -1
+        return [this.activeFile, this.index]
+    }
+
+    get currentIndex() {
+        return this.index
+    }
+
+    get activeFile() {
+        return this.assets[this.index]
+    }
+}
+
+
+const setup = (resultBody, assets) => {
+    if (!assets.length) {
+        resultBody.querySelector('.media').classList.add('hidden')
+        return
+    }
+
+    const mediaViewer = new MediaViewer(assets)
+    const container = resultBody.querySelector('.media-container')
+    const leftArrow = resultBody.querySelector('.media-container__nav--left')
+    const rightArrow = resultBody.querySelector('.media-container__nav--right')
+    const mediaName = resultBody.querySelector('.media__name')
+    const counter = resultBody.querySelector('.media__counter')
+    const imageEl = resultBody.querySelector('img')
+    const sourceEl = resultBody.querySelector('source')
+    const videoEl = resultBody.querySelector('video')
+
+    const setImg = (media, index) => {
+        if (media?.format_type === 'image') {
+            imageEl.src = media.path
+
+            imageEl.classList.remove('hidden')
+            videoEl.classList.add('hidden')
+        } else if (media?.format_type === 'video') {
+            sourceEl.src = media.path
+
+            videoEl.classList.remove('hidden')
+            imageEl.classList.add('hidden')
+        }
+
+        mediaName.innerText = media?.name
+        counter.innerText = `${index + 1} / ${assets.length}`
+    }
+    setImg(mediaViewer.activeFile, mediaViewer.currentIndex)
+
+    const moveLeft = () => {
+        const [media, index] = mediaViewer.prevActive()
+        setImg(media, index)
+    }
+    const doRight = () => {
+        const [media, index] = mediaViewer.nextActive()
+        setImg(media, index)
+    }
+    const openImg = () => {
+        window.open(mediaViewer.activeFile.path, '_blank')
+    }
+    if (assets.length === 1) {
+        container.classList.add('media-container--fullscreen')
+    } else {
+        leftArrow.addEventListener('click', moveLeft)
+        rightArrow.addEventListener('click', doRight)
+    }
+    imageEl.addEventListener('click', openImg)
+}
+
+module.exports = {
+    setup,
+}
+
+},{}],7:[function(require,module,exports){
+const { manager } = require('./datamanager.js')
+const storageModule = require('./storage.js')
+
+const genericSort = (list, key, ascending, customOrder) => {
+    let sorted
+    if (customOrder) {
+        sorted = list.sort((a, b) => {
+            const aValue = a.result.toLowerCase()
+            const bValue = b.result.toLowerCase()
+
+            const aIndex = customOrder.findIndex((item) => item.toLowerCase() === aValue)
+            const bIndex = customOrder.findIndex((item) => item.toLowerCase() === bValue)
+
+            // Compare the indices to determine the sort order
+            return aIndex - bIndex
+        })
+    } else {
+        sorted = list.sort((a, b) => a[key] === b[key] ? 0 : a[key] > b[key] ? 1 : -1)
+    }
+
+    if (ascending) {
+        sorted.reverse()
+    }
+    return sorted
+}
+
+const durationSort = (list, ascending) => {
+    const parseDuration = (duration) => {
+        if (duration.includes(':')) {
+            // If it's in the format "HH:mm:ss"
+            const [hours, minutes, seconds] = duration.split(':').map(Number)
+            return (hours * 3600 + minutes * 60 + seconds) * 1000
+        } else {
+            // If it's in the format "nnn ms"
+            return parseInt(duration)
+        }
+    }
+    const sorted = list.sort((a, b) => parseDuration(a['duration']) - parseDuration(b['duration']))
+    if (ascending) {
+        sorted.reverse()
+    }
+    return sorted
+}
+
+const doInitSort = () => {
+    const type = storageModule.getSort(manager.initialSort)
+    const ascending = storageModule.getSortDirection()
+    const list = manager.testSubset
+    const initialOrder = ['Error', 'Failed', 'Rerun', 'XFailed', 'XPassed', 'Skipped', 'Passed']
+
+    storageModule.setSort(type)
+    storageModule.setSortDirection(ascending)
+
+    if (type?.toLowerCase() === 'original') {
+        manager.setRender(list)
+    } else {
+        let sortedList
+        switch (type) {
+        case 'duration':
+            sortedList = durationSort(list, ascending)
+            break
+        case 'result':
+            sortedList = genericSort(list, type, ascending, initialOrder)
+            break
+        default:
+            sortedList = genericSort(list, type, ascending)
+            break
+        }
+        manager.setRender(sortedList)
+    }
+}
+
+const doSort = (type, skipDirection) => {
+    const newSortType = storageModule.getSort(manager.initialSort) !== type
+    const currentAsc = storageModule.getSortDirection()
+    let ascending
+    if (skipDirection) {
+        ascending = currentAsc
+    } else {
+        ascending = newSortType ? false : !currentAsc
+    }
+    storageModule.setSort(type)
+    storageModule.setSortDirection(ascending)
+
+    const list = manager.testSubset
+    const sortedList = type === 'duration' ? durationSort(list, ascending) : genericSort(list, type, ascending)
+    manager.setRender(sortedList)
+}
+
+module.exports = {
+    doInitSort,
+    doSort,
+}
+
+},{"./datamanager.js":1,"./storage.js":8}],8:[function(require,module,exports){
+const possibleFilters = [
+    'passed',
+    'skipped',
+    'failed',
+    'error',
+    'xfailed',
+    'xpassed',
+    'rerun',
+]
+
+const getVisible = () => {
+    const url = new URL(window.location.href)
+    const settings = new URLSearchParams(url.search).get('visible')
+    const lower = (item) => {
+        const lowerItem = item.toLowerCase()
+        if (possibleFilters.includes(lowerItem)) {
+            return lowerItem
+        }
+        return null
+    }
+    return settings === null ?
+        possibleFilters :
+        [...new Set(settings?.split(',').map(lower).filter((item) => item))]
+}
+
+const hideCategory = (categoryToHide) => {
+    const url = new URL(window.location.href)
+    const visibleParams = new URLSearchParams(url.search).get('visible')
+    const currentVisible = visibleParams ? visibleParams.split(',') : [...possibleFilters]
+    const settings = [...new Set(currentVisible)].filter((f) => f !== categoryToHide).join(',')
+
+    url.searchParams.set('visible', settings)
+    window.history.pushState({}, null, unescape(url.href))
+}
+
+const showCategory = (categoryToShow) => {
+    if (typeof window === 'undefined') {
+        return
+    }
+    const url = new URL(window.location.href)
+    const currentVisible = new URLSearchParams(url.search).get('visible')?.split(',').filter(Boolean) ||
+        [...possibleFilters]
+    const settings = [...new Set([categoryToShow, ...currentVisible])]
+    const noFilter = possibleFilters.length === settings.length || !settings.length
+
+    noFilter ? url.searchParams.delete('visible') : url.searchParams.set('visible', settings.join(','))
+    window.history.pushState({}, null, unescape(url.href))
+}
+
+const getSort = (initialSort) => {
+    const url = new URL(window.location.href)
+    let sort = new URLSearchParams(url.search).get('sort')
+    if (!sort) {
+        sort = initialSort || 'result'
+    }
+    return sort
+}
+
+const setSort = (type) => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('sort', type)
+    window.history.pushState({}, null, unescape(url.href))
+}
+
+const getCollapsedCategory = (renderCollapsed) => {
+    let categories
+    if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href)
+        const collapsedItems = new URLSearchParams(url.search).get('collapsed')
+        switch (true) {
+        case !renderCollapsed && collapsedItems === null:
+            categories = ['passed']
+            break
+        case collapsedItems?.length === 0 || /^["']{2}$/.test(collapsedItems):
+            categories = []
+            break
+        case /^all$/.test(collapsedItems) || collapsedItems === null && /^all$/.test(renderCollapsed):
+            categories = [...possibleFilters]
+            break
+        default:
+            categories = collapsedItems?.split(',').map((item) => item.toLowerCase()) || renderCollapsed
+            break
+        }
+    } else {
+        categories = []
+    }
+    return categories
+}
+
+const getSortDirection = () => JSON.parse(sessionStorage.getItem('sortAsc')) || false
+const setSortDirection = (ascending) => sessionStorage.setItem('sortAsc', ascending)
+
+const getCollapsedIds = () => JSON.parse(sessionStorage.getItem('collapsedIds')) || []
+const setCollapsedIds = (list) => sessionStorage.setItem('collapsedIds', JSON.stringify(list))
+
+module.exports = {
+    getVisible,
+    hideCategory,
+    showCategory,
+    getCollapsedIds,
+    setCollapsedIds,
+    getSort,
+    setSort,
+    getSortDirection,
+    setSortDirection,
+    getCollapsedCategory,
+    possibleFilters,
+}
+
+},{}]},{},[4]);
+    </script>
+  </footer>
+</html>

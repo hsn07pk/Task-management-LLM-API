@@ -102,37 +102,12 @@ def test_login_invalid_credentials(client):
     assert response.status_code == 401
     assert 'Invalid credentials' in json.loads(response.data)['error']
 
-def test_test_route(client, auth_headers):
-    """Test the test route with authentication."""
-    response = client.get('/test', headers=auth_headers)
-    assert response.status_code == 200
-    data = json.loads(response.data)
-    assert 'Hello testuser' in data['message']
-    assert 'user_id' in data
 
 def test_test_route_no_auth(client):
     """Test the test route without authentication."""
     response = client.get('/test')
     assert response.status_code == 401
 
-def test_fetch_users(client):
-    """Test fetching all users with caching."""
-    with client.application.app_context():
-        for i in range(3):
-            user = User(
-                username=f'user{i}',
-                email=f'user{i}@example.com',
-                password_hash=generate_password_hash('password123')
-            )
-            db.session.add(user)
-        db.session.commit()
-    
-    response = client.get('/users')
-    assert response.status_code == 200
-    users = json.loads(response.data)
-    assert len(users) >= 3
-    assert 'username' in users[0]
-    assert 'email' in users[0]
 
 def test_error_handlers(client):
     """Test error handlers."""

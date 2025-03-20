@@ -1,36 +1,42 @@
 import pytest
 import json
+from sqlalchemy import text
 from app import create_app
 from models import db, User
 from werkzeug.security import generate_password_hash
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def app():
     """Create and configure a Flask app for testing."""
     app = create_app()
     app.config.update({
         'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
+        'SQLALCHEMY_DATABASE_URI': 'postgresql://admin:helloworld123@localhost/task_management_db',
         'SQLALCHEMY_TRACK_MODIFICATIONS': False,
-        'JWT_SECRET_KEY': 'test-secret-key',
+        'JWT_SECRET_KEY': 'super-secret',
         'CACHE_TYPE': 'SimpleCache'
     })
-    
+
     with app.app_context():
+        # Clean database before running tests
+        db.session.execute(text("DROP SCHEMA public CASCADE; CREATE SCHEMA public;"))
+        db.session.commit()
+        
         db.create_all()
         yield app
+        
         db.session.remove()
-        db.drop_all()
+        db.session.execute(text("DROP SCHEMA public CASCADE; CREATE SCHEMA public;"))
+        db.session.commit()
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def client(app):
     """A test client for the app."""
     return app.test_client()
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def auth_headers(client):
     """Get auth headers with JWT token."""
-    # Create a test user
     with client.application.app_context():
         user = User(
             username='testuser',
@@ -40,11 +46,12 @@ def auth_headers(client):
         db.session.add(user)
         db.session.commit()
     
-    # Login and get token
     response = client.post('/login', json={
         'email': 'test@example.com',
         'password': 'password123'
     })
+    assert response.status_code == 200, f"Login failed: {response.data}"
+    
     token = json.loads(response.data)['access_token']
     return {'Authorization': f'Bearer {token}'}
 
@@ -55,7 +62,6 @@ def test_create_app(app):
 
 def test_login_success(client):
     """Test successful login."""
-    # Create a test user
     with client.application.app_context():
         user = User(
             username='loginuser',
@@ -74,15 +80,12 @@ def test_login_success(client):
 
 def test_login_missing_fields(client):
     """Test login with missing fields."""
-    response = client.post('/login', json={
-        'email': 'test@example.com'
-    })
+    response = client.post('/login', json={'email': 'test@example.com'})
     assert response.status_code == 400
     assert 'Missing email or password' in json.loads(response.data)['error']
 
 def test_login_invalid_credentials(client):
     """Test login with invalid credentials."""
-    # Create a test user
     with client.application.app_context():
         user = User(
             username='invaliduser',
@@ -114,7 +117,6 @@ def test_test_route_no_auth(client):
 
 def test_fetch_users(client):
     """Test fetching all users with caching."""
-    # Create some test users
     with client.application.app_context():
         for i in range(3):
             user = User(
@@ -134,7 +136,6 @@ def test_fetch_users(client):
 
 def test_error_handlers(client):
     """Test error handlers."""
-    # Test 404 error
     response = client.get('/nonexistent-route')
     assert response.status_code == 404
     assert 'Not Found' in json.loads(response.data)['error']

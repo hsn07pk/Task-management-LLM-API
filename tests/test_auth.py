@@ -152,11 +152,11 @@ def test_login_missing_fields(client):
     
     Asserts:
         - Status code should be 400 indicating a bad request due to missing fields.
-        - The error message should indicate missing email or password.
+        - The error message should indicate 'Password is required'.
     """
     response = client.post('/login', json={'email': 'test@example.com'})
     assert response.status_code == 400
-    assert 'Missing email or password' in json.loads(response.data)['error']
+    assert 'Password is required' in json.loads(response.data)['error']
 
 def test_login_invalid_credentials(client):
     """
@@ -170,7 +170,7 @@ def test_login_invalid_credentials(client):
     
     Asserts:
         - Status code should be 401 indicating unauthorized access.
-        - The error message should indicate invalid credentials.
+        - The error message should indicate 'Invalid password'.
     """
     with client.application.app_context():
         user = User(
@@ -186,7 +186,7 @@ def test_login_invalid_credentials(client):
         'password': 'wrongpassword'
     })
     assert response.status_code == 401
-    assert 'Invalid credentials' in json.loads(response.data)['error']
+    assert 'Invalid password' in json.loads(response.data)['error']
 
 def test_login_nonexistent_user(client):
     """
@@ -200,14 +200,14 @@ def test_login_nonexistent_user(client):
     
     Asserts:
         - Status code should be 401 indicating unauthorized access.
-        - The error message should indicate invalid credentials.
+        - The error message should indicate 'User not found'.
     """
     response = client.post('/login', json={
         'email': 'nonexistent@example.com',
         'password': 'password123'
     })
     assert response.status_code == 401
-    assert 'Invalid credentials' in json.loads(response.data)['error']
+    assert 'User not found' in json.loads(response.data)['error']
 
 def test_test_route_no_auth(client):
     """

@@ -123,7 +123,8 @@ def test_create_user(client, app):
         response = client.post('/users', json={
             'username': 'newuser',
             'email': 'new@example.com',
-            'password': 'password123'
+            'password': 'password123',
+            'role': 'member'
         })
         assert response.status_code == 201
         data = json.loads(response.data)
@@ -146,14 +147,16 @@ def test_create_user_duplicate_email(client, app):
         client.post('/users', json={
             'username': 'user1',
             'email': 'duplicate@example.com',
-            'password': 'password123'
+            'password': 'password123',
+            'role': 'member'
         })
         
         # Try to create second user with the same email
         response = client.post('/users', json={
             'username': 'user2',
             'email': 'duplicate@example.com',
-            'password': 'password123'
+            'password': 'password123',
+            'role': 'member'
         })
         assert response.status_code == 400
         assert 'Email already exists' in json.loads(response.data)['error']
@@ -174,14 +177,16 @@ def test_create_user_duplicate_username(client, app):
         client.post('/users', json={
             'username': 'sameusername',
             'email': 'user1@example.com',
-            'password': 'password123'
+            'password': 'password123',
+            'role': 'member'
         })
         
         # Try to create second user with the same username
         response = client.post('/users', json={
             'username': 'sameusername',
             'email': 'user2@example.com',
-            'password': 'password123'
+            'password': 'password123',
+            'role': 'member'
         })
         assert response.status_code == 400
         assert 'Username already exists' in json.loads(response.data)['error']

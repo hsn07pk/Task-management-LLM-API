@@ -153,7 +153,7 @@ def test_login_missing_fields(client):
     """
     response = client.post('/login', json={'email': 'test@example.com'})
     assert response.status_code == 400
-    assert 'Missing email or password' in json.loads(response.data)['error']
+    assert 'Password is required' in json.loads(response.data)['error']
 
 def test_login_invalid_credentials(client):
     """
@@ -180,7 +180,7 @@ def test_login_invalid_credentials(client):
         'password': 'wrongpassword'
     })
     assert response.status_code == 401
-    assert 'Invalid credentials' in json.loads(response.data)['error']
+    assert 'Invalid password' in json.loads(response.data)['error']
 
 def test_test_route_no_auth(client):
     """

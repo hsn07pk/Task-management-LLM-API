@@ -10,6 +10,10 @@ db = SQLAlchemy()
 
 # User Model
 class User(db.Model):
+    """
+    User model represents a user in the system. It includes information such as username, email, password,
+    role, and timestamps for account creation and last login.
+    """
     __tablename__ = 'USER'
     user_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     username = db.Column(db.String(255), unique=True, nullable=False)
@@ -39,6 +43,12 @@ class User(db.Model):
     memberships = db.relationship('TeamMembership', backref='user', lazy=True, cascade='all, delete-orphan')
 
     def to_dict(self):
+        """
+        Convert the User object into a dictionary format suitable for JSON serialization.
+
+        Returns:
+            dict: Dictionary containing user information.
+        """
         return {
             'user_id': str(self.user_id),  # Convert UUID to string
             'username': self.username,
@@ -53,6 +63,10 @@ class User(db.Model):
 
 # Team Model
 class Team(db.Model):
+    """
+    Team model represents a team within the system. It includes information such as team name, description,
+    and a reference to the team lead (user).
+    """
     __tablename__ = 'TEAM'
     team_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = db.Column(db.String(255), nullable=False)
@@ -64,6 +78,12 @@ class Team(db.Model):
     memberships = db.relationship('TeamMembership', backref='team', lazy=True, cascade='all, delete-orphan')
 
     def to_dict(self):
+        """
+        Convert the Team object into a dictionary format suitable for JSON serialization.
+
+        Returns:
+            dict: Dictionary containing team information.
+        """
         return {
             'team_id': str(self.team_id),
             'name': self.name,
@@ -77,6 +97,10 @@ class Team(db.Model):
 
 # Category Model
 class Category(db.Model):
+    """
+    Category model represents a category for projects. It includes a name, description, and color code for 
+    visual representation.
+    """
     __tablename__ = 'CATEGORY'
     category_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = db.Column(db.String(255), unique=True, nullable=False)
@@ -87,6 +111,10 @@ class Category(db.Model):
 
 # Project Model
 class Project(db.Model):
+    """
+    Project model represents a project within the system. It includes project title, description, status, 
+    deadline, and relationships with teams and categories.
+    """
     __tablename__ = 'PROJECT'
     project_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = db.Column(db.String(255), nullable=False)
@@ -99,6 +127,12 @@ class Project(db.Model):
     tasks = db.relationship('Task', backref='project', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
+         """
+        Convert the Project object into a dictionary format suitable for JSON serialization.
+
+        Returns:
+            dict: Dictionary containing project information.
+        """
         return {
             'project_id': str(self.project_id),
             'title': self.title,
@@ -115,18 +149,28 @@ class Project(db.Model):
 
 # Priority Enum
 class PriorityEnum(int, Enum):
+    """
+    Enum for defining task priorities.
+    """
     HIGH = 1
     MEDIUM = 2
     LOW = 3
 
 # Status Enum
 class StatusEnum(str, Enum):
+    """
+    Enum for defining task status.
+    """
     PENDING = 'pending'
     IN_PROGRESS = 'in_progress'
     COMPLETED = 'completed'
 
 # Task Model
 class Task(db.Model):
+    """
+    Task model represents a task within a project. It includes task title, description, priority, status, 
+    deadlines, and relationships with users (assignees, creators, and updaters).
+    """
     __tablename__ = 'TASK'
     task_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = db.Column(db.String(255), nullable=False)
@@ -142,6 +186,20 @@ class Task(db.Model):
     def __init__(self, title, description=None, priority=PriorityEnum.LOW.value, deadline=None, 
                  status=StatusEnum.PENDING.value, project_id=None, assignee_id=None, 
                  created_by=None, updated_by=None):
+        """
+        Constructor for creating a new Task.
+
+        Args:
+            title (str): The title of the task.
+            description (str, optional): The description of the task.
+            priority (int, optional): The priority level of the task.
+            deadline (datetime, optional): The task's deadline.
+            status (str, optional): The current status of the task.
+            project_id (UUID, optional): The ID of the related project.
+            assignee_id (UUID, optional): The ID of the user assigned to the task.
+            created_by (UUID, optional): The ID of the user who created the task.
+            updated_by (UUID, optional): The ID of the user who last updated the task.
+        """
         self.title = title
         self.description = description
         self.priority = priority
@@ -153,6 +211,12 @@ class Task(db.Model):
         self.updated_by = updated_by
 
     def to_dict(self):
+        """
+        Convert the Task object into a dictionary format suitable for JSON serialization.
+
+        Returns:
+            dict: Dictionary containing task information.
+        """
         return {
             'task_id': str(self.task_id),
             'title': self.title,
@@ -172,6 +236,10 @@ class Task(db.Model):
 
 # Team Membership Model
 class TeamMembership(db.Model):
+    """
+    Team Membership model represents a membership record for a user within a team, including the role of 
+    the user within the team.
+    """
     __tablename__ = 'TEAM_MEMBERSHIP'
     membership_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('USER.user_id', ondelete='CASCADE'))
@@ -180,6 +248,12 @@ class TeamMembership(db.Model):
 
 # Function to initialize the database
 def init_db(app):
+    """
+    Initialize the database for the Flask application.
+
+    Args:
+        app (Flask): The Flask application instance.
+    """
     if app.config.get('TESTING'):
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
     else:
@@ -191,6 +265,18 @@ def init_db(app):
 
 # CRUD Functions
 def create_user(username, email, password, role='member'):
+    """
+    Create a new user in the system.
+
+    Args:
+        username (str): The username of the new user.
+        email (str): The email of the new user.
+        password (str): The password of the new user.
+        role (str, optional): The role of the user (default is 'member').
+
+    Returns:
+        User: The created User object.
+    """
     password_hash = generate_password_hash(password)  # Hash the password
     user = User(username=username, email=email, password_hash=password_hash, role=role)
     db.session.add(user)
@@ -198,9 +284,28 @@ def create_user(username, email, password, role='member'):
     return user
 
 def get_user_by_id(user_id):
+    """
+    Retrieve a user by their ID.
+
+    Args:
+        user_id (UUID): The ID of the user to retrieve.
+
+    Returns:
+        User: The user object, or None if not found.
+    """
     return User.query.get(user_id)
 
 def update_user(user_id, **kwargs):
+    """
+    Update a user's details.
+
+    Args:
+        user_id (UUID): The ID of the user to update.
+        **kwargs: The fields to update with their new values.
+
+    Returns:
+        User: The updated User object.
+    """
     user = get_user_by_id(user_id)
     if user:
         for key, value in kwargs.items():
@@ -209,6 +314,15 @@ def update_user(user_id, **kwargs):
     return user
 
 def delete_user(user_id):
+     """
+    Delete a user from the system.
+
+    Args:
+        user_id (UUID): The ID of the user to delete.
+
+    Returns:
+        User: The deleted User object, or None if not found.
+    """
     user = get_user_by_id(user_id)
     if user:
         db.session.delete(user)
@@ -216,15 +330,46 @@ def delete_user(user_id):
     return user
 
 def get_all_users():
+    """
+    Retrieve all users from the system.
+
+    Returns:
+        list: A list of all User objects.
+    """
     return User.query.all()
 
 def create_team(name, description, lead_id):
+    """
+    Create a new team in the system.
+
+    Args:
+        name (str): The name of the team.
+        description (str): The description of the team.
+        lead_id (UUID): The ID of the user leading the team.
+
+    Returns:
+        Team: The created Team object.
+    """
     team = Team(name=name, description=description, lead_id=lead_id)
     db.session.add(team)
     db.session.commit()
     return team
 
 def assign_task(title, description, priority, project_id, assignee_id, created_by=None):
+    """
+    Assign a new task to a user.
+
+    Args:
+        title (str): The title of the task.
+        description (str): The description of the task.
+        priority (int): The priority level of the task.
+        project_id (UUID): The ID of the project the task belongs to.
+        assignee_id (UUID): The ID of the user assigned to the task.
+        created_by (UUID, optional): The ID of the user creating the task.
+
+    Returns:
+        Task: The created Task object.
+    """
     task = Task(title=title, description=description, priority=priority, project_id=project_id, 
                 assignee_id=assignee_id, created_by=created_by)
     db.session.add(task)
@@ -232,12 +377,38 @@ def assign_task(title, description, priority, project_id, assignee_id, created_b
     return task
 
 def get_project_tasks(project_id):
+    """
+    Retrieve all tasks associated with a specific project.
+
+    Args:
+        project_id (UUID): The ID of the project.
+
+    Returns:
+        list: A list of Task objects associated with the project.
+    """
     return Task.query.filter_by(project_id=project_id).all()
 
 # Task CRUD Functions
 def create_task(title, description=None, priority=PriorityEnum.LOW.value, deadline=None, 
                 status=StatusEnum.PENDING.value, project_id=None, assignee_id=None, 
                 created_by=None, updated_by=None):
+    """
+    Create a new task.
+
+    Args:
+        title (str): The title of the task.
+        description (str, optional): The description of the task.
+        priority (int, optional): The priority level of the task.
+        deadline (datetime, optional): The task's deadline.
+        status (str, optional): The current status of the task.
+        project_id (UUID, optional): The ID of the related project.
+        assignee_id (UUID, optional): The ID of the user assigned to the task.
+        created_by (UUID, optional): The ID of the user who created the task.
+        updated_by (UUID, optional): The ID of the user who last updated the task.
+
+    Returns:
+        Task: The created Task object.
+    """
     task = Task(title=title, description=description, priority=priority, deadline=deadline, 
                 status=status, project_id=project_id, assignee_id=assignee_id, 
                 created_by=created_by, updated_by=updated_by)
@@ -249,6 +420,15 @@ def get_task(task_id):
     return Task.query.get(task_id)
 
 def delete_task(task_id):
+    """
+    Delete a task from the system.
+
+    Args:
+        task_id (UUID): The ID of the task to delete.
+
+    Returns:
+        Task: The deleted Task object, or None if not found.
+    """
     task = get_task(task_id)
     if task:
         db.session.delete(task)

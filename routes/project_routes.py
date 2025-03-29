@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import Project, Team, db
+from models import Project, Team, User, db
 from uuid import UUID
 import traceback
 from validators.validators import validate_json
@@ -71,20 +71,37 @@ def create_project():
         # Get JSON data from the request body
         data = request.get_json()
         
+        # Check if current user exists
+        current_user_id = get_jwt_identity()
+        current_user = User.query.get(current_user_id)
+        if not current_user:
+            return jsonify({'error': 'Current user not found'}), 404
+        
         # Convert team_id from string to UUID and validate
-        team_id = UUID(data['team_id'])
+        try:
+            team_id = UUID(data['team_id'])
+        except (ValueError, KeyError) as e:
+            return jsonify({'error': 'Invalid team_id', 'message': str(e)}), 400
         
         # Validate if the team exists in the database
         team = Team.query.get(team_id)
         if not team:
             return jsonify({'error': 'Team not found'}), 404
 
+        # Handle optional category_id
+        category_id = None
+        if 'category_id' in data and data['category_id']:
+            try:
+                category_id = UUID(data['category_id'])
+            except ValueError as e:
+                return jsonify({'error': 'Invalid category_id format', 'message': str(e)}), 400
+
         # Create a new Project object and populate it with the request data
         new_project = Project(
             title=data['title'],
             description=data.get('description'),
             team_id=team_id,
-            category_id=UUID(data['category_id']) if 'category_id' in data else None
+            category_id=category_id
         )
         
         # Add the new project to the database and commit the changes
@@ -94,6 +111,9 @@ def create_project():
         # Return the created project details
         return jsonify(new_project.to_dict()), 201
 
+    except KeyError as e:
+        # Handle missing required fields
+        return jsonify({'error': 'Missing required field', 'message': f'Field {str(e)} is required'}), 400
     except ValueError as e:
         # Handle invalid UUID format error
         return jsonify({'error': 'Invalid UUID format', 'message': str(e)}), 400
@@ -116,15 +136,24 @@ def get_project(project_id):
         A JSON response with the project's details and a 200 status code if found,
         or an error message with a 404 status code if the project does not exist.
     """
-    # Retrieve the project by its ID
-    project = Project.query.get(project_id)
-    
-    # Check if the project exists
-    if not project:
-        return jsonify({'error': 'Project not found'}), 404
-    
-    # Return the project details
-    return jsonify(project.to_dict()), 200
+    try:
+        # Check if current user exists
+        current_user_id = get_jwt_identity()
+        current_user = User.query.get(current_user_id)
+        if not current_user:
+            return jsonify({'error': 'Current user not found'}), 404
+            
+        # Retrieve the project by its ID
+        project = Project.query.get(project_id)
+        
+        # Check if the project exists
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        # Return the project details
+        return jsonify(project.to_dict()), 200
+    except Exception as e:
+        return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 @project_bp.route('/projects/<uuid:project_id>', methods=['PUT'])
 @jwt_required()
@@ -140,31 +169,60 @@ def update_project(project_id):
         A JSON response with the updated project details and a 200 status code if successful,
         or an error message with a 404 status code if the project does not exist.
     """
-    # Retrieve the project by its ID
-    project = Project.query.get(project_id)
-    
-    # Check if the project exists
-    if not project:
-        return jsonify({'error': 'Project not found'}), 404
+    try:
+        # Check if current user exists
+        current_user_id = get_jwt_identity()
+        current_user = User.query.get(current_user_id)
+        if not current_user:
+            return jsonify({'error': 'Current user not found'}), 404
+            
+        # Retrieve the project by its ID
+        project = Project.query.get(project_id)
+        
+        # Check if the project exists
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
 
-    # Get the updated data from the request body
-    data = request.get_json()
+        # Get the updated data from the request body
+        data = request.get_json()
 
-    # Update the project details based on the provided data
-    if 'title' in data:
-        project.title = data['title']
-    if 'description' in data:
-        project.description = data['description']
-    if 'team_id' in data:
-        project.team_id = UUID(data['team_id'])
-    if 'category_id' in data:
-        project.category_id = UUID(data['category_id']) if data['category_id'] else None
+        # Update the project details based on the provided data
+        if 'title' in data:
+            project.title = data['title']
+            
+        if 'description' in data:
+            project.description = data['description']
+            
+        if 'team_id' in data:
+            try:
+                team_id = UUID(data['team_id'])
+                # Verify team exists
+                team = Team.query.get(team_id)
+                if not team:
+                    return jsonify({'error': 'Team not found'}), 404
+                project.team_id = team_id
+            except ValueError as e:
+                return jsonify({'error': 'Invalid team_id format', 'message': str(e)}), 400
+                
+        if 'category_id' in data:
+            if data['category_id']:
+                try:
+                    category_id = UUID(data['category_id'])
+                    project.category_id = category_id
+                except ValueError as e:
+                    return jsonify({'error': 'Invalid category_id format', 'message': str(e)}), 400
+            else:
+                project.category_id = None
 
-    # Commit the changes to the database
-    db.session.commit()
+        # Commit the changes to the database
+        db.session.commit()
 
-    # Return the updated project details
-    return jsonify(project.to_dict()), 200
+        # Return the updated project details
+        return jsonify(project.to_dict()), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 @project_bp.route('/projects/<uuid:project_id>', methods=['DELETE'])
 @jwt_required()
@@ -179,16 +237,27 @@ def delete_project(project_id):
         A JSON response confirming deletion and a 200 status code if successful,
         or an error message with a 404 status code if the project does not exist.
     """
-    # Retrieve the project by its ID
-    project = Project.query.get(project_id)
-    
-    # Check if the project exists
-    if not project:
-        return jsonify({'error': 'Project not found'}), 404
-    
-    # Delete the project from the database
-    db.session.delete(project)
-    db.session.commit()
+    try:
+        # Check if current user exists
+        current_user_id = get_jwt_identity()
+        current_user = User.query.get(current_user_id)
+        if not current_user:
+            return jsonify({'error': 'Current user not found'}), 404
+            
+        # Retrieve the project by its ID
+        project = Project.query.get(project_id)
+        
+        # Check if the project exists
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        # Delete the project from the database
+        db.session.delete(project)
+        db.session.commit()
 
-    # Return a success message
-    return jsonify({'message': 'Project deleted successfully'}), 200
+        # Return a success message
+        return jsonify({'message': 'Project deleted successfully'}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Internal server error', 'message': str(e)}), 500

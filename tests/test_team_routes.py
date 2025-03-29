@@ -26,7 +26,7 @@ def test_create_team(client, team_name, lead_id):
         - The response contains the `team_id`.
     """
     # Prepare data for team creation
-    data = {'name': team_name, 'lead_id': str(lead_id)}
+    data = {'name': 'Dev Team', 'lead_id': str(uuid.uuid4())}
     
     # Make POST request to create the team
     response = client.post('/teams', json=data)

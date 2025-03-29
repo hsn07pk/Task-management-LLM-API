@@ -4,3 +4,4 @@ sqlalchemy==1.4.46
 flask-sqlalchemy==2.5.1
 flask-jwt-extended==4.4.4
 flask-caching==2.0.2
+psycopg2

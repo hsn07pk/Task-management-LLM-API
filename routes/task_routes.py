@@ -8,9 +8,11 @@ from validators.validators import validate_json
 from schemas.schemas import TASK_SCHEMA
 from extentions.extensions import cache  
 from models import User
-from models import StatusEnum, PriorityEnum 
+
+# Create a new Blueprint for task-related routes
 task_bp = Blueprint('task_routes', __name__)
 
+# Define valid values for status and priority
 VALID_STATUS = [e.value for e in StatusEnum]
 VALID_PRIORITY_NAMES = [e.name for e in PriorityEnum]  # ['HIGH', 'MEDIUM', 'LOW']
 
@@ -18,14 +20,41 @@ VALID_PRIORITY_NAMES = [e.name for e in PriorityEnum]  # ['HIGH', 'MEDIUM', 'LOW
 
 @task_bp.errorhandler(400)
 def bad_request(error):
+    """
+    Handle 400 Bad Request errors.
+    
+    Args:
+        error: The error object passed when a 400 error is encountered.
+        
+    Returns:
+        A JSON response with an error message and a 400 status code.
+    """
     return jsonify({'error': 'Bad Request', 'message': str(error)}), 400
 
 @task_bp.errorhandler(404)
 def not_found(error):
+    """
+    Handle 404 Not Found errors.
+    
+    Args:
+        error: The error object passed when a 404 error is encountered.
+        
+    Returns:
+        A JSON response with an error message and a 404 status code.
+    """
     return jsonify({'error': 'Not Found', 'message': str(error)}), 404
 
 @task_bp.errorhandler(500)
 def internal_error(error):
+    """
+    Handle 500 Internal Server errors.
+    
+    Args:
+        error: The error object passed when a 500 error is encountered.
+        
+    Returns:
+        A JSON response with an error message and a 500 status code.
+    """
     return jsonify({'error': 'Internal Server Error', 'message': str(error)}), 500
 
 # ---------------- TASK ROUTES ----------------
@@ -34,8 +63,19 @@ def internal_error(error):
 @jwt_required()
 @validate_json(TASK_SCHEMA)
 def create_task():
-    """Creates a new task with validation and authentication."""
+    """
+    Create a new task with validation and authentication.
+    
+    This route allows a user to create a new task, validating the provided data 
+    (e.g., project_id, assignee_id, priority, etc.). The user must be authenticated 
+    via JWT, and the input data must follow the TASK_SCHEMA.
+    
+    Returns:
+        A JSON response with the created task's details and a 201 status code if successful, 
+        or an error message with the appropriate HTTP status code if an issue arises.
+    """
     try:
+        # Get the authenticated user's ID from JWT
         user_id = get_jwt_identity()
         data = request.get_json()
         created_by = UUID(user_id)
@@ -71,7 +111,7 @@ def create_task():
         except KeyError:
             return jsonify({'error': 'Invalid priority value'}), 400
 
-        # Create the task
+        # Create the task object and add it to the database
         new_task = Task(
             title=data['title'],
             description=data.get('description'),
@@ -99,7 +139,20 @@ def create_task():
 @task_bp.route('/tasks/<uuid:task_id>', methods=['PUT'])
 @jwt_required()
 def update_task(task_id):
-    """Update an existing task."""
+    """
+    Update an existing task.
+    
+    Args:
+        task_id (uuid): The ID of the task to update.
+    
+    This route allows updating the details of a specific task, such as title, 
+    description, priority, status, etc. The input data must include valid fields, 
+    and only authenticated users can update the task.
+
+    Returns:
+        A JSON response with the updated task's details and a 200 status code if successful, 
+        or an error message with the appropriate HTTP status code if an issue arises.
+    """
     try:
         user_id = get_jwt_identity()
         task = Task.query.get(task_id)
@@ -110,6 +163,7 @@ def update_task(task_id):
         if not data:
             return jsonify({'error': 'No input data provided'}), 400
 
+        # Update fields based on provided data
         if 'title' in data:
             task.title = data['title']
         if 'description' in data:
@@ -143,11 +197,19 @@ def update_task(task_id):
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 
-
 @task_bp.route('/tasks/<uuid:task_id>', methods=['DELETE'])
 @jwt_required()
 def delete_task(task_id):
-    """Delete a task."""
+    """
+    Delete a task by its ID.
+    
+    Args:
+        task_id (uuid): The ID of the task to delete.
+        
+    Returns:
+        A 204 status code if successful, or an error message with a 404 status code 
+        if the task is not found.
+    """
     try:
         task = Task.query.get(task_id)
         if not task:
@@ -165,22 +227,29 @@ def delete_task(task_id):
 @task_bp.route('/tasks', methods=['GET'])
 @jwt_required()
 def get_tasks():
-    """Get all tasks with optional filters."""
+    """
+    Retrieve all tasks with optional filters.
+    
+    This route allows users to get a list of tasks, with optional query parameters
+    to filter tasks by project ID, assignee ID, or status.
+
+    Query Parameters:
+        - project_id: Filter tasks by project ID.
+        - assignee_id: Filter tasks by assignee ID.
+        - status: Filter tasks by status.
+
+    Returns:
+        A JSON response with a list of tasks matching the filters and a 200 status code,
+        or an error message with an appropriate HTTP status code if an issue arises.
+    """
     try:
         project_id = request.args.get('project_id')
         assignee_id = request.args.get('assignee_id')
         status = request.args.get('status')
 
+        # Build the query with optional filters
         query = Task.query
         if project_id:
             query = query.filter_by(project_id=project_id)
         if assignee_id:
             query = query.filter_by(assignee_id=assignee_id)
-        if status:
-            query = query.filter_by(status=status)
-
-        tasks = query.all()
-        return jsonify([task.to_dict() for task in tasks]), 200
-
-    except Exception as e:
-        return jsonify({'error': 'Internal server error', 'message': str(e)}), 500

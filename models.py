@@ -1,13 +1,15 @@
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
 from enum import Enum
+
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError, DataError
 
 # Initialize SQLAlchemy
 db = SQLAlchemy()
+
 
 # User Model
 class User(db.Model):
@@ -15,31 +17,34 @@ class User(db.Model):
     User model represents a user in the system. It includes information such as username, email, password,
     role, and timestamps for account creation and last login.
     """
-    __tablename__ = 'USER'
+
+    __tablename__ = "USER"
 
     user_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     username = db.Column(db.String(255), unique=True, nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.Text, nullable=False)
-    role = db.Column(db.String(50), default='member')
+    role = db.Column(db.String(50), default="member")
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     last_login = db.Column(db.DateTime)
 
-    teams = db.relationship('Team', backref='leader', lazy=True, cascade='save-update')
-    tasks = db.relationship('Task',
-                         foreign_keys='Task.assignee_id',
-                         backref='assignee',
-                         lazy=True,
-                         cascade='save-update')
-    created_tasks = db.relationship('Task',
-                                 foreign_keys='Task.created_by',
-                                 backref='creator',
-                                 lazy=True)
-    updated_tasks = db.relationship('Task',
-                                 foreign_keys='Task.updated_by',
-                                 backref='updater',
-                                 lazy=True)
-    memberships = db.relationship('TeamMembership', backref='user', lazy=True, cascade='all, delete-orphan')
+    teams = db.relationship("Team", backref="leader", lazy=True, cascade="save-update")
+    tasks = db.relationship(
+        "Task",
+        foreign_keys="Task.assignee_id",
+        backref="assignee",
+        lazy=True,
+        cascade="save-update",
+    )
+    created_tasks = db.relationship(
+        "Task", foreign_keys="Task.created_by", backref="creator", lazy=True
+    )
+    updated_tasks = db.relationship(
+        "Task", foreign_keys="Task.updated_by", backref="updater", lazy=True
+    )
+    memberships = db.relationship(
+        "TeamMembership", backref="user", lazy=True, cascade="all, delete-orphan"
+    )
 
     def to_dict(self):
         """
@@ -49,18 +54,18 @@ class User(db.Model):
         """
         try:
             return {
-                'user_id': str(self.user_id), # Convert UUID to string
-                'username': self.username,
-                'email': self.email,
-                'role': self.role,
-                'created_at': self.created_at.isoformat() if self.created_at else None, # Format datetime
-                'last_login': self.last_login.isoformat() if self.last_login else None,
-                '_links': {
-                    'self': f'/users/{self.user_id}'
-                }
+                "user_id": str(self.user_id),  # Convert UUID to string
+                "username": self.username,
+                "email": self.email,
+                "role": self.role,
+                "created_at": (
+                    self.created_at.isoformat() if self.created_at else None
+                ),  # Format datetime
+                "last_login": self.last_login.isoformat() if self.last_login else None,
+                "_links": {"self": f"/users/{self.user_id}"},
             }
         except Exception as e:
-            return {'error': f'Error serializing user: {str(e)}'}
+            return {"error": f"Error serializing user: {str(e)}"}
 
 
 # Team Model
@@ -69,16 +74,19 @@ class Team(db.Model):
     Team model represents a team within the system. It includes information such as team name, description,
     and a reference to the team lead (user).
     """
-    __tablename__ = 'TEAM'
+
+    __tablename__ = "TEAM"
 
     team_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    lead_id = db.Column(UUID(as_uuid=True), db.ForeignKey('USER.user_id', ondelete='SET NULL'))
+    lead_id = db.Column(UUID(as_uuid=True), db.ForeignKey("USER.user_id", ondelete="SET NULL"))
 
-    projects = db.relationship('Project', backref='team', lazy=True, cascade='all, delete-orphan')
-    memberships = db.relationship('TeamMembership', backref='team', lazy=True, cascade='all, delete-orphan')
+    projects = db.relationship("Project", backref="team", lazy=True, cascade="all, delete-orphan")
+    memberships = db.relationship(
+        "TeamMembership", backref="team", lazy=True, cascade="all, delete-orphan"
+    )
 
     def to_dict(self):
         """
@@ -88,17 +96,17 @@ class Team(db.Model):
         """
         try:
             return {
-                'team_id': str(self.team_id),
-                'name': self.name,
-                'description': self.description,
-                'lead_id': str(self.lead_id) if self.lead_id else None,
-                '_links': {
-                    'self': f'/teams/{self.team_id}',
-                    'members': f'/teams/{self.team_id}/members'
-                }
+                "team_id": str(self.team_id),
+                "name": self.name,
+                "description": self.description,
+                "lead_id": str(self.lead_id) if self.lead_id else None,
+                "_links": {
+                    "self": f"/teams/{self.team_id}",
+                    "members": f"/teams/{self.team_id}/members",
+                },
             }
         except Exception as e:
-            return {'error': f'Error serializing team: {str(e)}'}
+            return {"error": f"Error serializing team: {str(e)}"}
 
 
 # Category Model
@@ -107,15 +115,16 @@ class Category(db.Model):
     Category model represents a category for projects. It includes a name, description, and color code for
     visual representation.
     """
-    __tablename__ = 'CATEGORY'
+
+    __tablename__ = "CATEGORY"
 
     category_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = db.Column(db.String(255), unique=True, nullable=False)
     description = db.Column(db.Text)
-    color = db.Column(db.String(7), default='#64748b')
+    color = db.Column(db.String(7), default="#64748b")
 
     # Define a single relationship with back_populates to avoid conflicts
-    projects = db.relationship('Project', back_populates='category', lazy=True)
+    projects = db.relationship("Project", back_populates="category", lazy=True)
 
 
 # Project Model
@@ -124,19 +133,22 @@ class Project(db.Model):
     Project model represents a project within the system. It includes project title, description, status,
     deadline, and relationships with teams and categories.
     """
-    __tablename__ = 'PROJECT'
+
+    __tablename__ = "PROJECT"
 
     project_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
-    status = db.Column(db.String(50), default='planning')
+    status = db.Column(db.String(50), default="planning")
     deadline = db.Column(db.DateTime)
-    team_id = db.Column(UUID(as_uuid=True), db.ForeignKey('TEAM.team_id', ondelete='CASCADE'))
-    category_id = db.Column(UUID(as_uuid=True), db.ForeignKey('CATEGORY.category_id', ondelete='SET NULL'))
+    team_id = db.Column(UUID(as_uuid=True), db.ForeignKey("TEAM.team_id", ondelete="CASCADE"))
+    category_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("CATEGORY.category_id", ondelete="SET NULL")
+    )
 
     # Use back_populates to properly link with Category.projects
-    category = db.relationship('Category', back_populates='projects', lazy=True)
-    tasks = db.relationship('Task', backref='project', lazy=True, cascade='all, delete-orphan')
+    category = db.relationship("Category", back_populates="projects", lazy=True)
+    tasks = db.relationship("Task", backref="project", lazy=True, cascade="all, delete-orphan")
 
     def to_dict(self):
         """
@@ -146,20 +158,20 @@ class Project(db.Model):
         """
         try:
             return {
-                'project_id': str(self.project_id),
-                'title': self.title,
-                'description': self.description,
-                'status': self.status,
-                'deadline': self.deadline.isoformat() if self.deadline else None,
-                'team_id': str(self.team_id) if self.team_id else None,
-                'category_id': str(self.category_id) if self.category_id else None,
-                '_links': {
-                    'self': f'/projects/{self.project_id}',
-                    'tasks': f'/tasks?project_id={self.project_id}'
-                }
+                "project_id": str(self.project_id),
+                "title": self.title,
+                "description": self.description,
+                "status": self.status,
+                "deadline": self.deadline.isoformat() if self.deadline else None,
+                "team_id": str(self.team_id) if self.team_id else None,
+                "category_id": str(self.category_id) if self.category_id else None,
+                "_links": {
+                    "self": f"/projects/{self.project_id}",
+                    "tasks": f"/tasks?project_id={self.project_id}",
+                },
             }
         except Exception as e:
-            return {'error': f'Error serializing project: {str(e)}'}
+            return {"error": f"Error serializing project: {str(e)}"}
 
 
 # Priority Enum
@@ -167,6 +179,7 @@ class PriorityEnum(int, Enum):
     """
     Enum for defining task priorities.
     """
+
     HIGH = 1
     MEDIUM = 2
     LOW = 3
@@ -177,9 +190,10 @@ class StatusEnum(str, Enum):
     """
     Enum for defining task status.
     """
-    PENDING = 'pending'
-    IN_PROGRESS = 'in_progress'
-    COMPLETED = 'completed'
+
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
 
 
 # Task Model
@@ -188,7 +202,8 @@ class Task(db.Model):
     Task model represents a task within a project. It includes task title, description, priority, status,
     deadlines, and relationships with users (assignees, creators, and updaters).
     """
-    __tablename__ = 'TASK'
+
+    __tablename__ = "TASK"
 
     task_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = db.Column(db.String(255), nullable=False)
@@ -196,14 +211,25 @@ class Task(db.Model):
     status = db.Column(db.String(50), default=StatusEnum.PENDING.value)
     priority = db.Column(db.Integer, default=PriorityEnum.LOW.value)
     deadline = db.Column(db.DateTime)
-    project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('PROJECT.project_id', ondelete='CASCADE'))
-    assignee_id = db.Column(UUID(as_uuid=True), db.ForeignKey('USER.user_id', ondelete='SET NULL'))
-    created_by = db.Column(UUID(as_uuid=True), db.ForeignKey('USER.user_id', ondelete='SET NULL'))
-    updated_by = db.Column(UUID(as_uuid=True), db.ForeignKey('USER.user_id', ondelete='SET NULL'))
+    project_id = db.Column(
+        UUID(as_uuid=True), db.ForeignKey("PROJECT.project_id", ondelete="CASCADE")
+    )
+    assignee_id = db.Column(UUID(as_uuid=True), db.ForeignKey("USER.user_id", ondelete="SET NULL"))
+    created_by = db.Column(UUID(as_uuid=True), db.ForeignKey("USER.user_id", ondelete="SET NULL"))
+    updated_by = db.Column(UUID(as_uuid=True), db.ForeignKey("USER.user_id", ondelete="SET NULL"))
 
-    def __init__(self, title, description=None, priority=PriorityEnum.LOW.value, deadline=None,
-                 status=StatusEnum.PENDING.value, project_id=None, assignee_id=None,
-                 created_by=None, updated_by=None):
+    def __init__(
+        self,
+        title,
+        description=None,
+        priority=PriorityEnum.LOW.value,
+        deadline=None,
+        status=StatusEnum.PENDING.value,
+        project_id=None,
+        assignee_id=None,
+        created_by=None,
+        updated_by=None,
+    ):
         """
         Constructor for creating a new Task.
         Args:
@@ -235,23 +261,23 @@ class Task(db.Model):
         """
         try:
             return {
-                'task_id': str(self.task_id),
-                'title': self.title,
-                'description': self.description,
-                'priority': self.priority,
-                'deadline': self.deadline.isoformat() if self.deadline else None,
-                'status': self.status,
-                'project_id': str(self.project_id) if self.project_id else None,
-                'assignee_id': str(self.assignee_id) if self.assignee_id else None,
-                'created_by': str(self.created_by) if self.created_by else None,
-                'updated_by': str(self.updated_by) if self.updated_by else None,
-                '_links': {
-                    'self': f'/tasks/{self.task_id}',
-                    'project': f'/projects/{self.project_id}' if self.project_id else None
-                }
+                "task_id": str(self.task_id),
+                "title": self.title,
+                "description": self.description,
+                "priority": self.priority,
+                "deadline": self.deadline.isoformat() if self.deadline else None,
+                "status": self.status,
+                "project_id": str(self.project_id) if self.project_id else None,
+                "assignee_id": str(self.assignee_id) if self.assignee_id else None,
+                "created_by": str(self.created_by) if self.created_by else None,
+                "updated_by": str(self.updated_by) if self.updated_by else None,
+                "_links": {
+                    "self": f"/tasks/{self.task_id}",
+                    "project": f"/projects/{self.project_id}" if self.project_id else None,
+                },
             }
         except Exception as e:
-            return {'error': f'Error serializing task: {str(e)}'}
+            return {"error": f"Error serializing task: {str(e)}"}
 
 
 # Team Membership Model
@@ -260,12 +286,13 @@ class TeamMembership(db.Model):
     Team Membership model represents a membership record for a user within a team, including the role of
     the user within the team.
     """
-    __tablename__ = 'TEAM_MEMBERSHIP'
+
+    __tablename__ = "TEAM_MEMBERSHIP"
 
     membership_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('USER.user_id', ondelete='CASCADE'))
-    team_id = db.Column(UUID(as_uuid=True), db.ForeignKey('TEAM.team_id', ondelete='CASCADE'))
-    role = db.Column(db.String(50), default='member')
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey("USER.user_id", ondelete="CASCADE"))
+    team_id = db.Column(UUID(as_uuid=True), db.ForeignKey("TEAM.team_id", ondelete="CASCADE"))
+    role = db.Column(db.String(50), default="member")
 
 
 # Function to initialize the database
@@ -276,14 +303,16 @@ def init_db(app):
         app (Flask): The Flask application instance.
     """
     try:
-        if app.config.get('TESTING'):
-            app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+        if app.config.get("TESTING"):
+            app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
         else:
-            app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://admin:helloworld123@localhost:5432/task_management_db'
-        
-        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+            app.config["SQLALCHEMY_DATABASE_URI"] = (
+                "postgresql://admin:helloworld123@localhost:5432/task_management_db"
+            )
+
+        app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
         db.init_app(app)
-        
+
         with app.app_context():
             db.create_all()
         return True
@@ -293,7 +322,7 @@ def init_db(app):
 
 
 # CRUD Functions
-def create_user(username, email, password, role='member'):
+def create_user(username, email, password, role="member"):
     """
     Create a new user in the system.
     Args:
@@ -305,7 +334,7 @@ def create_user(username, email, password, role='member'):
         User: The created User object.
     """
     try:
-        password_hash = generate_password_hash(password) # Hash the password
+        password_hash = generate_password_hash(password)  # Hash the password
         user = User(username=username, email=email, password_hash=password_hash, role=role)
         db.session.add(user)
         db.session.commit()
@@ -351,13 +380,13 @@ def update_user(user_id, **kwargs):
         user = get_user_by_id(user_id)
         if not user:
             raise ValueError(f"User with ID {user_id} not found")
-            
+
         for key, value in kwargs.items():
             if hasattr(user, key):
                 setattr(user, key, value)
             else:
                 raise ValueError(f"Invalid attribute: {key}")
-                
+
         db.session.commit()
         return user
     except IntegrityError:
@@ -417,7 +446,7 @@ def create_team(name, description, lead_id):
             lead = get_user_by_id(lead_id)
             if not lead:
                 raise ValueError(f"User with ID {lead_id} not found")
-                
+
         team = Team(name=name, description=description, lead_id=lead_id)
         db.session.add(team)
         db.session.commit()
@@ -446,19 +475,19 @@ def assign_task(title, description, priority, project_id, assignee_id, created_b
             project = Project.query.get(project_id)
             if not project:
                 raise ValueError(f"Project with ID {project_id} not found")
-        
+
         # Validate assignee_id
         if assignee_id:
             assignee = get_user_by_id(assignee_id)
             if not assignee:
                 raise ValueError(f"User with ID {assignee_id} not found")
-        
+
         # Validate created_by
         if created_by:
             creator = get_user_by_id(created_by)
             if not creator:
                 raise ValueError(f"User with ID {created_by} not found")
-                
+
         # Validate priority
         try:
             priority_value = int(priority)
@@ -466,15 +495,22 @@ def assign_task(title, description, priority, project_id, assignee_id, created_b
                 raise ValueError(f"Invalid priority value: {priority}")
         except (ValueError, TypeError):
             raise ValueError(f"Priority must be a valid integer: {priority}")
-            
-        task = Task(title=title, description=description, priority=priority, project_id=project_id,
-                  assignee_id=assignee_id, created_by=created_by)
+
+        task = Task(
+            title=title,
+            description=description,
+            priority=priority,
+            project_id=project_id,
+            assignee_id=assignee_id,
+            created_by=created_by,
+        )
         db.session.add(task)
         db.session.commit()
         return task
     except Exception as e:
         db.session.rollback()
         raise Exception(f"Error assigning task: {str(e)}")
+
 
 def get_project_tasks(project_id):
     """
@@ -490,21 +526,29 @@ def get_project_tasks(project_id):
                 project_id = uuid.UUID(str(project_id))
             except (ValueError, TypeError):
                 raise ValueError(f"Invalid project ID format: {project_id}")
-                
+
         # Verify project exists
         project = Project.query.get(project_id)
         if not project:
             raise ValueError(f"Project with ID {project_id} not found")
-            
+
         return Task.query.filter_by(project_id=project_id).all()
     except Exception as e:
         print(f"Error retrieving project tasks: {str(e)}")
         return []
 
 
-def create_task(title, description=None, priority=PriorityEnum.LOW.value, deadline=None,
-               status=StatusEnum.PENDING.value, project_id=None, assignee_id=None,
-               created_by=None, updated_by=None):
+def create_task(
+    title,
+    description=None,
+    priority=PriorityEnum.LOW.value,
+    deadline=None,
+    status=StatusEnum.PENDING.value,
+    project_id=None,
+    assignee_id=None,
+    created_by=None,
+    updated_by=None,
+):
     """
     Create a new task.
     Args:
@@ -524,7 +568,7 @@ def create_task(title, description=None, priority=PriorityEnum.LOW.value, deadli
         # Validate title
         if not title or not isinstance(title, str):
             raise ValueError("Task title is required and must be a string")
-            
+
         # Validate priority
         try:
             priority_value = int(priority)
@@ -532,11 +576,11 @@ def create_task(title, description=None, priority=PriorityEnum.LOW.value, deadli
                 raise ValueError(f"Invalid priority value: {priority}")
         except (ValueError, TypeError):
             raise ValueError(f"Priority must be a valid integer: {priority}")
-            
+
         # Validate status
         if status not in [e.value for e in StatusEnum]:
             raise ValueError(f"Invalid status value: {status}")
-            
+
         # Validate project_id
         if project_id:
             if not isinstance(project_id, uuid.UUID):
@@ -544,11 +588,11 @@ def create_task(title, description=None, priority=PriorityEnum.LOW.value, deadli
                     project_id = uuid.UUID(str(project_id))
                 except (ValueError, TypeError):
                     raise ValueError(f"Invalid project ID format: {project_id}")
-            
+
             project = Project.query.get(project_id)
             if not project:
                 raise ValueError(f"Project with ID {project_id} not found")
-                
+
         # Validate assignee_id
         if assignee_id:
             if not isinstance(assignee_id, uuid.UUID):
@@ -556,11 +600,11 @@ def create_task(title, description=None, priority=PriorityEnum.LOW.value, deadli
                     assignee_id = uuid.UUID(str(assignee_id))
                 except (ValueError, TypeError):
                     raise ValueError(f"Invalid assignee ID format: {assignee_id}")
-                    
+
             assignee = get_user_by_id(assignee_id)
             if not assignee:
                 raise ValueError(f"User with ID {assignee_id} not found")
-                
+
         # Validate created_by
         if created_by:
             if not isinstance(created_by, uuid.UUID):
@@ -568,11 +612,11 @@ def create_task(title, description=None, priority=PriorityEnum.LOW.value, deadli
                     created_by = uuid.UUID(str(created_by))
                 except (ValueError, TypeError):
                     raise ValueError(f"Invalid creator ID format: {created_by}")
-                    
+
             creator = get_user_by_id(created_by)
             if not creator:
                 raise ValueError(f"User with ID {created_by} not found")
-                
+
         # Validate updated_by
         if updated_by:
             if not isinstance(updated_by, uuid.UUID):
@@ -580,14 +624,22 @@ def create_task(title, description=None, priority=PriorityEnum.LOW.value, deadli
                     updated_by = uuid.UUID(str(updated_by))
                 except (ValueError, TypeError):
                     raise ValueError(f"Invalid updater ID format: {updated_by}")
-                    
+
             updater = get_user_by_id(updated_by)
             if not updater:
                 raise ValueError(f"User with ID {updated_by} not found")
-        
-        task = Task(title=title, description=description, priority=priority, deadline=deadline,
-                  status=status, project_id=project_id, assignee_id=assignee_id,
-                  created_by=created_by, updated_by=updated_by)
+
+        task = Task(
+            title=title,
+            description=description,
+            priority=priority,
+            deadline=deadline,
+            status=status,
+            project_id=project_id,
+            assignee_id=assignee_id,
+            created_by=created_by,
+            updated_by=updated_by,
+        )
         db.session.add(task)
         db.session.commit()
         return task
@@ -630,7 +682,7 @@ def delete_task(task_id):
                 task_id = uuid.UUID(str(task_id))
             except (ValueError, TypeError):
                 raise ValueError(f"Invalid task ID format: {task_id}")
-                
+
         task = get_task(task_id)
         if task:
             db.session.delete(task)

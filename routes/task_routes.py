@@ -1,13 +1,12 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import Task, Project, db, StatusEnum, PriorityEnum
+from models import Task, Project, db, StatusEnum, PriorityEnum, User
 from datetime import datetime
 from uuid import UUID
 import traceback
 from validators.validators import validate_json
 from schemas.schemas import TASK_SCHEMA
 from extentions.extensions import cache  
-from models import User
 
 # Create a new Blueprint for task-related routes
 task_bp = Blueprint('task_routes', __name__)
@@ -77,39 +76,60 @@ def create_task():
     try:
         # Get the authenticated user's ID from JWT
         user_id = get_jwt_identity()
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+            
         data = request.get_json()
-        created_by = UUID(user_id)
-        updated_by = UUID(user_id)
+        
+        # Validate user_id is a valid UUID
+        try:
+            created_by = UUID(user_id)
+            updated_by = UUID(user_id)
+        except ValueError:
+            return jsonify({'error': 'Invalid user ID format'}), 400
 
-        # Validate project_id exists
-        project_id = UUID(data['project_id'])
+        # Validate project_id is a valid UUID and exists
+        try:
+            if not data.get('project_id'):
+                return jsonify({'error': 'Project ID is required'}), 400
+                
+            project_id = UUID(data['project_id'])
+        except ValueError:
+            return jsonify({'error': 'Invalid project_id format'}), 400
+            
         project = Project.query.get(project_id)
         if not project:
-            return jsonify({'error': 'Invalid project_id: Project not found'}), 400
+            return jsonify({'error': 'Invalid project_id: Project not found'}), 404
 
-        # Validate assignee_id exists if provided
+        # Validate assignee_id if provided
         assignee_id = None
-        if 'assignee_id' in data:
-            assignee_id = UUID(data['assignee_id'])
-            assignee = User.query.get(assignee_id)
-            if not assignee:
-                return jsonify({'error': 'Invalid assignee_id: User not found'}), 400
+        if 'assignee_id' in data and data['assignee_id']:
+            try:
+                assignee_id = UUID(data['assignee_id'])
+                assignee = User.query.get(assignee_id)
+                if not assignee:
+                    return jsonify({'error': 'Invalid assignee_id: User not found'}), 404
+            except ValueError:
+                return jsonify({'error': 'Invalid assignee_id format'}), 400
 
         # Parse deadline if provided
         deadline = None
-        if 'deadline' in data:
-            deadline = datetime.fromisoformat(data['deadline'].replace('Z', '+00:00'))
+        if 'deadline' in data and data['deadline']:
+            try:
+                deadline = datetime.fromisoformat(data['deadline'].replace('Z', '+00:00'))
+            except ValueError:
+                return jsonify({'error': 'Invalid deadline format. Use ISO format (YYYY-MM-DDTHH:MM:SS)'}), 400
 
         # Validate status and priority
         status = data.get('status', StatusEnum.PENDING.value)
         if status not in VALID_STATUS:
-            return jsonify({'error': 'Invalid status value'}), 400
+            return jsonify({'error': f'Invalid status value. Valid values are: {VALID_STATUS}'}), 400
 
         priority_str = data.get('priority', 'LOW').upper()
         try:
             priority = PriorityEnum[priority_str].value
         except KeyError:
-            return jsonify({'error': 'Invalid priority value'}), 400
+            return jsonify({'error': f'Invalid priority value. Valid values are: {VALID_PRIORITY_NAMES}'}), 400
 
         # Create the task object and add it to the database
         new_task = Task(
@@ -129,7 +149,7 @@ def create_task():
         return jsonify(new_task.to_dict()), 201
 
     except ValueError as e:
-        return jsonify({'error': 'Invalid UUID format', 'message': str(e)}), 400
+        return jsonify({'error': 'Invalid data format', 'message': str(e)}), 400
     except Exception as e:
         print(traceback.format_exc())
         db.session.rollback()
@@ -155,6 +175,9 @@ def update_task(task_id):
     """
     try:
         user_id = get_jwt_identity()
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+            
         task = Task.query.get(task_id)
         if not task:
             return jsonify({'error': 'Task not found'}), 404
@@ -166,28 +189,50 @@ def update_task(task_id):
         # Update fields based on provided data
         if 'title' in data:
             task.title = data['title']
+            
         if 'description' in data:
             task.description = data['description']
+            
         if 'priority' in data:
             priority_str = data['priority'].upper()
             try:
                 task.priority = PriorityEnum[priority_str].value
             except KeyError:
-                return jsonify({'error': 'Invalid priority value'}), 400
-        if 'status' in data and data['status'] in VALID_STATUS:
+                return jsonify({'error': f'Invalid priority value. Valid values are: {VALID_PRIORITY_NAMES}'}), 400
+                
+        if 'status' in data:
+            if data['status'] not in VALID_STATUS:
+                return jsonify({'error': f'Invalid status value. Valid values are: {VALID_STATUS}'}), 400
             task.status = data['status']
+            
         if 'deadline' in data:
-            try:
-                task.deadline = datetime.fromisoformat(data['deadline'].replace('Z', '+00:00'))
-            except ValueError:
-                return jsonify({'error': 'Invalid deadline format. Use ISO format (YYYY-MM-DDTHH:MM:SS)'}), 400
+            if data['deadline'] is None:
+                task.deadline = None
+            else:
+                try:
+                    task.deadline = datetime.fromisoformat(data['deadline'].replace('Z', '+00:00'))
+                except ValueError:
+                    return jsonify({'error': 'Invalid deadline format. Use ISO format (YYYY-MM-DDTHH:MM:SS)'}), 400
+                    
         if 'assignee_id' in data:
-            try:
-                task.assignee_id = UUID(data['assignee_id'])
-            except ValueError:
-                return jsonify({'error': 'Invalid assignee_id format'}), 400
+            if data['assignee_id'] is None:
+                task.assignee_id = None
+            else:
+                try:
+                    assignee_id = UUID(data['assignee_id'])
+                    # Verify assignee exists
+                    assignee = User.query.get(assignee_id)
+                    if not assignee:
+                        return jsonify({'error': 'Invalid assignee_id: User not found'}), 404
+                    task.assignee_id = assignee_id
+                except ValueError:
+                    return jsonify({'error': 'Invalid assignee_id format'}), 400
 
-        task.updated_by = user_id
+        try:
+            task.updated_by = UUID(user_id)
+        except ValueError:
+            return jsonify({'error': 'Invalid user ID format'}), 400
+            
         db.session.commit()
         return jsonify(task.to_dict()), 200
 
@@ -211,6 +256,10 @@ def delete_task(task_id):
         if the task is not found.
     """
     try:
+        user_id = get_jwt_identity()
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+            
         task = Task.query.get(task_id)
         if not task:
             return jsonify({'error': 'Task not found'}), 404
@@ -243,21 +292,47 @@ def get_tasks():
         or an error message with an appropriate HTTP status code if an issue arises.
     """
     try:
+        user_id = get_jwt_identity()
+        if not user_id:
+            return jsonify({'error': 'User not authenticated'}), 401
+        
         project_id = request.args.get('project_id')
         assignee_id = request.args.get('assignee_id')
         status = request.args.get('status')
 
         # Build the query with optional filters
         query = Task.query
+        
         if project_id:
-            query = query.filter_by(project_id=project_id)
+            try:
+                project_uuid = UUID(project_id)
+                # Verify project exists
+                project = Project.query.get(project_uuid)
+                if not project:
+                    return jsonify({'error': f'Project with ID {project_id} not found'}), 404
+                query = query.filter_by(project_id=project_uuid)
+            except ValueError:
+                return jsonify({'error': 'Invalid project_id format'}), 400
+                
         if assignee_id:
-            query = query.filter_by(assignee_id=assignee_id)
+            try:
+                assignee_uuid = UUID(assignee_id)
+                # Verify assignee exists
+                assignee = User.query.get(assignee_uuid)
+                if not assignee:
+                    return jsonify({'error': f'User with ID {assignee_id} not found'}), 404
+                query = query.filter_by(assignee_id=assignee_uuid)
+            except ValueError:
+                return jsonify({'error': 'Invalid assignee_id format'}), 400
+                
         if status:
+            if status not in VALID_STATUS:
+                return jsonify({'error': f'Invalid status value. Valid values are: {VALID_STATUS}'}), 400
             query = query.filter_by(status=status)
 
         tasks = query.all()
         return jsonify([task.to_dict() for task in tasks]), 200
 
     except Exception as e:
+        print(traceback.format_exc())
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500

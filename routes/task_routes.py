@@ -120,8 +120,11 @@ def update_task(task_id):
                 task.priority = PriorityEnum[priority_str].value
             except KeyError:
                 return jsonify({'error': 'Invalid priority value'}), 400
-        if 'status' in data and data['status'] in VALID_STATUS:
-            task.status = data['status']
+        if 'status' in data:
+            if data['status'] in VALID_STATUS:
+                task.status = data['status']
+            else:
+                return jsonify({'error': 'Invalid status value'}), 400
         if 'deadline' in data:
             try:
                 task.deadline = datetime.fromisoformat(data['deadline'].replace('Z', '+00:00'))
@@ -181,6 +184,20 @@ def get_tasks():
 
         tasks = query.all()
         return jsonify([task.to_dict() for task in tasks]), 200
+
+    except Exception as e:
+        return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
+
+@task_bp.route('/tasks/<uuid:task_id>', methods=['GET'])
+@jwt_required()
+def get_task(task_id):
+    """Get a specific task by ID."""
+    try:
+        task = Task.query.get(task_id)
+        if not task:
+            return jsonify({'error': 'Task not found'}), 404
+
+        return jsonify(task.to_dict()), 200
 
     except Exception as e:
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500

@@ -98,7 +98,7 @@ def test_user(app):
         app (Flask): The Flask application instance.
 
     Returns:
-        User: The created test user instance.
+        dict: A dictionary containing the user's ID, username, and email.
     """
     with app.app_context():
         # Generate a unique username using a timestamp or UUID
@@ -110,35 +110,49 @@ def test_user(app):
         )
         db.session.add(user)
         db.session.commit()
-        return user
+        
+        # Return a dictionary with user information to avoid session issues
+        return {
+            'id': str(user.user_id),
+            'username': user.username,
+            'email': user.email
+        }
 
 @pytest.fixture(scope="function")
 def test_project(app, test_user):
     """
     Fixture to create a test project.
 
-    This fixture creates a new test project in the database, associated with the 
-    test user who will be the creator. The project is committed to the database and 
+    This fixture creates a new test project in the database, associated with the
+    test user who will be the creator. The project is committed to the database and
     returned for use in tests.
 
     Args:
         app (Flask): The Flask application instance.
-        test_user (User): The test user creating the project.
+        test_user (dict): The test user creating the project.
 
     Returns:
-        Project: The created test project instance.
+        dict: A dictionary containing the project's ID and other information.
     """
     with app.app_context():
+        # Store the user_id as a string to avoid SQLAlchemy session issues
+        user_id = test_user['id']
+        
         project = Project(
             title='Test Project',
             description='Test project description',
             status='active',
-            team_id=None,  # No team for simplicity
-            created_by=test_user.user_id
+            team_id=None  # No team for simplicity
         )
         db.session.add(project)
         db.session.commit()
-        return project
+        
+        # Return a dictionary with project information to avoid session issues
+        return {
+            'id': str(project.project_id),
+            'title': project.title,
+            'description': project.description
+        }
 
 @pytest.fixture(scope="function")
 def test_task(app, test_user, test_project):
@@ -151,26 +165,41 @@ def test_task(app, test_user, test_project):
 
     Args:
         app (Flask): The Flask application instance.
-        test_user (User): The user assigned to the task.
-        test_project (Project): The project to which the task belongs.
+        test_user (dict): The user assigned to the task.
+        test_project (dict): The project to which the task belongs.
 
     Returns:
-        Task: The created test task instance.
+        dict: A dictionary containing the task's ID and other information.
     """
     with app.app_context():
+        # Store IDs as strings to avoid SQLAlchemy session issues
+        user_id = test_user['id']
+        project_id = test_project['id']
+        
         task = Task(
             title='Test Task',
             description='Test task description',
             status=StatusEnum.PENDING.value,
             priority=PriorityEnum.MEDIUM.value,
-            project_id=test_project.project_id,
-            assignee_id=test_user.user_id,
-            created_by=test_user.user_id,
+            project_id=project_id,
+            assignee_id=user_id,
+            created_by=user_id,
             deadline=datetime.utcnow() + timedelta(days=7)
         )
         db.session.add(task)
         db.session.commit()
-        return task
+        
+        # Return a dictionary with task information to avoid session issues
+        return {
+            'id': str(task.task_id),
+            'title': task.title,
+            'description': task.description,
+            'status': task.status,
+            'priority': task.priority,
+            'project_id': str(task.project_id),
+            'assignee_id': str(task.assignee_id),
+            'created_by': str(task.created_by)
+        }
 
 @pytest.fixture(scope="function")
 def auth_headers(app, client, test_user):
@@ -184,13 +213,13 @@ def auth_headers(app, client, test_user):
     Args:
         app (Flask): The Flask application instance.
         client (FlaskClient): The Flask test client instance.
-        test_user (User): The test user to log in.
+        test_user (dict): The test user to log in.
 
     Returns:
         dict: A dictionary containing the Authorization header with the JWT token.
     """
     response = client.post('/login', json={
-        'email': 'testuser@example.com',
+        'email': test_user['email'],
         'password': 'password123'
     })
     assert response.status_code == 200, f"Login failed: {response.data}"
@@ -208,8 +237,8 @@ def test_create_task(client, test_user, test_project, auth_headers):
 
     Args:
         client (FlaskClient): The test client instance.
-        test_user (User): The user creating the task.
-        test_project (Project): The project to which the task belongs.
+        test_user (dict): The user creating the task.
+        test_project (dict): The project to which the task belongs.
         auth_headers (dict): The authorization headers containing the JWT token.
     """
     with client.application.app_context():
@@ -218,8 +247,8 @@ def test_create_task(client, test_user, test_project, auth_headers):
             'description': 'Description for new test task',
             'priority': PriorityEnum.MEDIUM.value,
             'status': StatusEnum.PENDING.value,
-            'project_id': str(test_project.project_id),
-            'assignee_id': str(test_user.user_id),
+            'project_id': test_project['id'],
+            'assignee_id': test_user['id'],
             'deadline': (datetime.utcnow() + timedelta(days=7)).isoformat()
         }
         
@@ -251,7 +280,7 @@ def test_create_task_missing_required_fields(client, auth_headers):
     
     response = client.post('/tasks', json=data, headers=auth_headers)
     assert response.status_code == 400
-    assert b'Missing required field' in response.data
+    assert b"'title' is a required property" in response.data
 
 def test_get_all_tasks(client, test_task, auth_headers):
     """
@@ -262,7 +291,7 @@ def test_get_all_tasks(client, test_task, auth_headers):
 
     Args:
         client (FlaskClient): The test client instance.
-        test_task (Task): The task to be retrieved.
+        test_task (dict): The task to be retrieved.
         auth_headers (dict): The authorization headers containing the JWT token.
     """
     with client.application.app_context():
@@ -286,24 +315,24 @@ def test_get_tasks_with_filters(client, test_task, auth_headers):
 
     Args:
         client (FlaskClient): The test client instance.
-        test_task (Task): The task to be filtered.
+        test_task (dict): The task to be filtered.
         auth_headers (dict): The authorization headers containing the JWT token.
     """
     with client.application.app_context():
         # Test project_id filter
-        response = client.get(f'/tasks?project_id={test_task.project_id}', headers=auth_headers)
+        response = client.get(f'/tasks?project_id={test_task["project_id"]}', headers=auth_headers)
         print("Get tasks with filters response:", response.data)  # Debug print
         assert response.status_code == 200
         tasks = json.loads(response.data)
         assert len(tasks) >= 1
-        assert any(task['project_id'] == str(test_task.project_id) for task in tasks)
+        assert any(task['project_id'] == test_task["project_id"] for task in tasks)
 
         # Test assignee_id filter
-        response = client.get(f'/tasks?assignee_id={test_task.assignee_id}', headers=auth_headers)
+        response = client.get(f'/tasks?assignee_id={test_task["assignee_id"]}', headers=auth_headers)
         assert response.status_code == 200
         tasks = json.loads(response.data)
         assert len(tasks) >= 1
-        assert any(task['assignee_id'] == str(test_task.assignee_id) for task in tasks)
+        assert any(task['assignee_id'] == test_task["assignee_id"] for task in tasks)
 
         # Test status filter
         response = client.get(f'/tasks?status={StatusEnum.PENDING.value}', headers=auth_headers)
@@ -320,17 +349,17 @@ def test_get_single_task(client, test_task, auth_headers):
 
     Args:
         client (FlaskClient): The test client instance.
-        test_task (Task): The task to be retrieved.
+        test_task (dict): The task to be retrieved.
         auth_headers (dict): The authorization headers containing the JWT token.
     """
     with client.application.app_context():
-        response = client.get(f'/tasks/{test_task.task_id}', headers=auth_headers)
+        response = client.get(f'/tasks/{test_task["id"]}', headers=auth_headers)
         assert response.status_code == 200
         
         # Check response data
         task = json.loads(response.data)
-        assert task['task_id'] == str(test_task.task_id)
-        assert task['title'] == test_task.title
+        assert task['task_id'] == test_task["id"]
+        assert task['title'] == test_task["title"]
 
 def test_get_nonexistent_task(client, auth_headers):
     """
@@ -356,7 +385,7 @@ def test_update_task(client, test_task, auth_headers):
 
     Args:
         client (FlaskClient): The test client instance.
-        test_task (Task): The task to be updated.
+        test_task (dict): The task to be updated.
         auth_headers (dict): The authorization headers containing the JWT token.
     """
     with client.application.app_context():
@@ -365,7 +394,7 @@ def test_update_task(client, test_task, auth_headers):
             'status': StatusEnum.IN_PROGRESS.value
         }
         
-        response = client.put(f'/tasks/{test_task.task_id}', json=data, headers=auth_headers)
+        response = client.put(f'/tasks/{test_task["id"]}', json=data, headers=auth_headers)
         assert response.status_code == 200
         
         # Check response data
@@ -397,12 +426,12 @@ def test_update_task_invalid_status(client, test_task, auth_headers):
 
     Args:
         client (FlaskClient): The test client instance.
-        test_task (Task): The task to be updated.
+        test_task (dict): The task to be updated.
         auth_headers (dict): The authorization headers containing the JWT token.
     """
     with client.application.app_context():
         data = {'status': 'invalid_status'}
-        response = client.put(f'/tasks/{test_task.task_id}', json=data, headers=auth_headers)
+        response = client.put(f'/tasks/{test_task["id"]}', json=data, headers=auth_headers)
         print("Update task invalid status response:", response.data)  # Debug print
         assert response.status_code == 400
 
@@ -416,16 +445,16 @@ def test_delete_task(client, test_task, auth_headers):
 
     Args:
         client (FlaskClient): The test client instance.
-        test_task (Task): The task to be deleted.
+        test_task (dict): The task to be deleted.
         auth_headers (dict): The authorization headers containing the JWT token.
     """
     with client.application.app_context():
-        response = client.delete(f'/tasks/{test_task.task_id}', headers=auth_headers)
+        response = client.delete(f'/tasks/{test_task["id"]}', headers=auth_headers)
         print("Delete task response:", response.data)  # Debug print
         assert response.status_code == 204
         
         # Verify task is deleted
-        response = client.get(f'/tasks/{test_task.task_id}', headers=auth_headers)
+        response = client.get(f'/tasks/{test_task["id"]}', headers=auth_headers)
         assert response.status_code == 404
 
 def test_delete_nonexistent_task(client, auth_headers):

@@ -125,11 +125,20 @@ def create_task():
         if status not in VALID_STATUS:
             return jsonify({'error': f'Invalid status value. Valid values are: {VALID_STATUS}'}), 400
 
-        priority_str = data.get('priority', 'LOW').upper()
-        try:
-            priority = PriorityEnum[priority_str].value
-        except KeyError:
-            return jsonify({'error': f'Invalid priority value. Valid values are: {VALID_PRIORITY_NAMES}'}), 400
+        # Handle priority - can be either a string or an integer
+        priority_value = data.get('priority', 'LOW')
+        if isinstance(priority_value, int):
+            # If it's already an integer, validate it's in range
+            if priority_value not in [p.value for p in PriorityEnum]:
+                return jsonify({'error': f'Invalid priority value. Valid values are: {VALID_PRIORITY_NAMES}'}), 400
+            priority = priority_value
+        else:
+            # If it's a string, convert to enum value
+            try:
+                priority_str = str(priority_value).upper()
+                priority = PriorityEnum[priority_str].value
+            except KeyError:
+                return jsonify({'error': f'Invalid priority value. Valid values are: {VALID_PRIORITY_NAMES}'}), 400
 
         # Create the task object and add it to the database
         new_task = Task(
@@ -156,123 +165,116 @@ def create_task():
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 
-@task_bp.route('/tasks/<uuid:task_id>', methods=['PUT'])
+@task_bp.route('/tasks/<uuid:task_id>', methods=['GET', 'PUT', 'DELETE'])
 @jwt_required()
-def update_task(task_id):
+def task_operations(task_id):
     """
-    Update an existing task.
+    Perform operations on a specific task by its ID.
+    
+    This route handles GET (retrieve), PUT (update), and DELETE operations for a task.
     
     Args:
-        task_id (uuid): The ID of the task to update.
-    
-    This route allows updating the details of a specific task, such as title, 
-    description, priority, status, etc. The input data must include valid fields, 
-    and only authenticated users can update the task.
-
+        task_id (uuid): The ID of the task to operate on.
+        
     Returns:
-        A JSON response with the updated task's details and a 200 status code if successful, 
-        or an error message with the appropriate HTTP status code if an issue arises.
+        For GET: A JSON response with the task's details and a 200 status code if found.
+        For PUT: A JSON response with the updated task's details and a 200 status code if successful.
+        For DELETE: A 204 status code with no content if successful.
+        Or an error message with an appropriate status code if an issue arises.
     """
     try:
         user_id = get_jwt_identity()
         if not user_id:
             return jsonify({'error': 'User not authenticated'}), 401
             
+        # Get the task from the database
         task = Task.query.get(task_id)
+        
+        # Check if the task exists
         if not task:
             return jsonify({'error': 'Task not found'}), 404
-
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'No input data provided'}), 400
-
-        # Update fields based on provided data
-        if 'title' in data:
-            task.title = data['title']
+        
+        # GET request - Return the task details
+        if request.method == 'GET':
+            return jsonify(task.to_dict()), 200
             
-        if 'description' in data:
-            task.description = data['description']
+        # DELETE request - Delete the task
+        elif request.method == 'DELETE':
+            db.session.delete(task)
+            db.session.commit()
+            return '', 204
             
-        if 'priority' in data:
-            priority_str = data['priority'].upper()
-            try:
-                task.priority = PriorityEnum[priority_str].value
-            except KeyError:
-                return jsonify({'error': f'Invalid priority value. Valid values are: {VALID_PRIORITY_NAMES}'}), 400
+        # PUT request - Update the task
+        elif request.method == 'PUT':
+            # Get the request data
+            data = request.get_json()
+            if not data:
+                return jsonify({'error': 'No data provided'}), 400
                 
-        if 'status' in data:
-            if data['status'] not in VALID_STATUS:
-                return jsonify({'error': f'Invalid status value. Valid values are: {VALID_STATUS}'}), 400
-            task.status = data['status']
-            
-        if 'deadline' in data:
-            if data['deadline'] is None:
-                task.deadline = None
-            else:
+            # Update the task fields
+            if 'title' in data:
+                task.title = data['title']
+                
+            if 'description' in data:
+                task.description = data['description']
+                
+            if 'priority' in data:
+                # Handle priority - can be either a string or an integer
+                priority_value = data['priority']
+                if isinstance(priority_value, int):
+                    # If it's already an integer, validate it's in range
+                    if priority_value not in [p.value for p in PriorityEnum]:
+                        return jsonify({'error': f'Invalid priority value. Valid values are: {VALID_PRIORITY_NAMES}'}), 400
+                    task.priority = priority_value
+                else:
+                    # If it's a string, convert to enum value
+                    try:
+                        priority_str = str(priority_value).upper()
+                        task.priority = PriorityEnum[priority_str].value
+                    except KeyError:
+                        return jsonify({'error': f'Invalid priority value. Valid values are: {VALID_PRIORITY_NAMES}'}), 400
+                    
+            if 'status' in data:
+                if data['status'] not in VALID_STATUS:
+                    return jsonify({'error': f'Invalid status value. Valid values are: {VALID_STATUS}'}), 400
+                task.status = data['status']
+                
+            if 'deadline' in data and data['deadline']:
                 try:
                     task.deadline = datetime.fromisoformat(data['deadline'].replace('Z', '+00:00'))
                 except ValueError:
                     return jsonify({'error': 'Invalid deadline format. Use ISO format (YYYY-MM-DDTHH:MM:SS)'}), 400
                     
-        if 'assignee_id' in data:
-            if data['assignee_id'] is None:
-                task.assignee_id = None
-            else:
-                try:
-                    assignee_id = UUID(data['assignee_id'])
-                    # Verify assignee exists
-                    assignee = User.query.get(assignee_id)
-                    if not assignee:
-                        return jsonify({'error': 'Invalid assignee_id: User not found'}), 404
-                    task.assignee_id = assignee_id
-                except ValueError:
-                    return jsonify({'error': 'Invalid assignee_id format'}), 400
-
-        try:
+            if 'assignee_id' in data:
+                if data['assignee_id']:
+                    try:
+                        assignee_id = UUID(data['assignee_id'])
+                        assignee = User.query.get(assignee_id)
+                        if not assignee:
+                            return jsonify({'error': 'Invalid assignee_id: User not found'}), 404
+                        task.assignee_id = assignee_id
+                    except ValueError:
+                        return jsonify({'error': 'Invalid assignee_id format'}), 400
+                else:
+                    task.assignee_id = None
+                    
+            # Update the updated_by field
             task.updated_by = UUID(user_id)
-        except ValueError:
-            return jsonify({'error': 'Invalid user ID format'}), 400
             
-        db.session.commit()
-        return jsonify(task.to_dict()), 200
-
+            # Commit the changes
+            db.session.commit()
+            
+            # Return the updated task
+            return jsonify(task.to_dict()), 200
+            
     except Exception as e:
-        print(traceback.format_exc())
+        # Log the error for debugging
+        print(f"Error processing task operation: {str(e)}")
+        traceback.print_exc()
         db.session.rollback()
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 
-@task_bp.route('/tasks/<uuid:task_id>', methods=['DELETE'])
-@jwt_required()
-def delete_task(task_id):
-    """
-    Delete a task by its ID.
-    
-    Args:
-        task_id (uuid): The ID of the task to delete.
-        
-    Returns:
-        A 204 status code if successful, or an error message with a 404 status code 
-        if the task is not found.
-    """
-    try:
-        user_id = get_jwt_identity()
-        if not user_id:
-            return jsonify({'error': 'User not authenticated'}), 401
-            
-        task = Task.query.get(task_id)
-        if not task:
-            return jsonify({'error': 'Task not found'}), 404
-
-        db.session.delete(task)
-        db.session.commit()
-        return '', 204
-
-    except Exception as e:
-        print(traceback.format_exc())
-        db.session.rollback()
-        return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
-    
 @task_bp.route('/tasks', methods=['GET'])
 @jwt_required()
 def get_tasks():

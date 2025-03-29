@@ -18,7 +18,7 @@
 * **ASSISTANTS:**
 
 ### Minutes
-*Summary of what was discussed during the meeting*
+*Summary of wha the meeting*
 
 ### Action points
 *List here the actions points discussed with assistants*

@@ -15,27 +15,31 @@ class User(db.Model):
     role, and timestamps for account creation and last login.
     """
     __tablename__ = 'USER'
-
-    # Unique identifier for the user
     user_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    # User's unique username
     username = db.Column(db.String(255), unique=True, nullable=False)
-    # User's unique email address
     email = db.Column(db.String(255), unique=True, nullable=False)
-    # Hashed password for the user
     password_hash = db.Column(db.Text, nullable=False)
-    # Role of the user (e.g., member, admin)
     role = db.Column(db.String(50), default='member')
-    # Timestamp for when the user account was created
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    # Timestamp for the user's last login
     last_login = db.Column(db.DateTime)
 
-    # Relationships with other models
     teams = db.relationship('Team', backref='leader', lazy=True, cascade='save-update')
-    tasks = db.relationship('Task', foreign_keys='Task.assignee_id', backref='assignee', lazy=True, cascade='save-update')
-    created_tasks = db.relationship('Task', foreign_keys='Task.created_by', backref='creator', lazy=True)
-    updated_tasks = db.relationship('Task', foreign_keys='Task.updated_by', backref='updater', lazy=True)
+    tasks = db.relationship('Task', 
+                           foreign_keys='Task.assignee_id',
+                           backref='assignee', 
+                           lazy=True, 
+                           cascade='save-update')
+    
+    created_tasks = db.relationship('Task',
+                                   foreign_keys='Task.created_by',
+                                   backref='creator',
+                                   lazy=True)
+    
+    updated_tasks = db.relationship('Task',
+                                   foreign_keys='Task.updated_by',
+                                   backref='updater',
+                                   lazy=True)
+    
     memberships = db.relationship('TeamMembership', backref='user', lazy=True, cascade='all, delete-orphan')
 
     def to_dict(self):
@@ -64,14 +68,12 @@ class Team(db.Model):
     and a reference to the team lead (user).
     """
     __tablename__ = 'TEAM'
-
     team_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     lead_id = db.Column(UUID(as_uuid=True), db.ForeignKey('USER.user_id', ondelete='SET NULL'))
 
-    # Relationships with other models
     projects = db.relationship('Project', backref='team', lazy=True, cascade='all, delete-orphan')
     memberships = db.relationship('TeamMembership', backref='team', lazy=True, cascade='all, delete-orphan')
 
@@ -100,13 +102,12 @@ class Category(db.Model):
     visual representation.
     """
     __tablename__ = 'CATEGORY'
-
     category_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = db.Column(db.String(255), unique=True, nullable=False)
     description = db.Column(db.Text)
     color = db.Column(db.String(7), default='#64748b')
 
-    projects = db.relationship('Project', backref='category_ref', lazy=True)
+    projects = db.relationship('Project', backref='category_ref', lazy=True) 
 
 # Project Model
 class Project(db.Model):
@@ -115,7 +116,6 @@ class Project(db.Model):
     deadline, and relationships with teams and categories.
     """
     __tablename__ = 'PROJECT'
-
     project_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
@@ -123,11 +123,11 @@ class Project(db.Model):
     deadline = db.Column(db.DateTime)
     team_id = db.Column(UUID(as_uuid=True), db.ForeignKey('TEAM.team_id', ondelete='CASCADE'))
     category_id = db.Column(UUID(as_uuid=True), db.ForeignKey('CATEGORY.category_id', ondelete='SET NULL'))
-    category = db.relationship('Category', backref='projects_ref', lazy=True)
+    category = db.relationship('Category', backref='projects_ref', lazy=True)  # Renamed 'projects' to 'projects_ref'
     tasks = db.relationship('Task', backref='project', lazy=True, cascade='all, delete-orphan')
-
+    
     def to_dict(self):
-        """
+         """
         Convert the Project object into a dictionary format suitable for JSON serialization.
 
         Returns:
@@ -172,7 +172,6 @@ class Task(db.Model):
     deadlines, and relationships with users (assignees, creators, and updaters).
     """
     __tablename__ = 'TASK'
-
     task_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
@@ -242,7 +241,6 @@ class TeamMembership(db.Model):
     the user within the team.
     """
     __tablename__ = 'TEAM_MEMBERSHIP'
-
     membership_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('USER.user_id', ondelete='CASCADE'))
     team_id = db.Column(UUID(as_uuid=True), db.ForeignKey('TEAM.team_id', ondelete='CASCADE'))
@@ -257,7 +255,7 @@ def init_db(app):
         app (Flask): The Flask application instance.
     """
     if app.config.get('TESTING'):
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'  # In-memory database for testing
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
     else:
         app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://admin:helloworld123@localhost:5432/task_management_db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -316,7 +314,7 @@ def update_user(user_id, **kwargs):
     return user
 
 def delete_user(user_id):
-    """
+     """
     Delete a user from the system.
 
     Args:
@@ -418,23 +416,8 @@ def create_task(title, description=None, priority=PriorityEnum.LOW.value, deadli
     db.session.commit()
     return task
 
-def update_task(task_id, **kwargs):
-    """
-    Update an existing task.
-
-    Args:
-        task_id (UUID): The ID of the task to update.
-        **kwargs: The fields to update with their new values.
-
-    Returns:
-        Task: The updated Task object.
-    """
-    task = Task.query.get(task_id)
-    if task:
-        for key, value in kwargs.items():
-            setattr(task, key, value)
-        db.session.commit()
-    return task
+def get_task(task_id):
+    return Task.query.get(task_id)
 
 def delete_task(task_id):
     """
@@ -446,8 +429,9 @@ def delete_task(task_id):
     Returns:
         Task: The deleted Task object, or None if not found.
     """
-    task = Task.query.get(task_id)
+    task = get_task(task_id)
     if task:
         db.session.delete(task)
         db.session.commit()
-    return task
+        return True
+    return False

@@ -63,22 +63,35 @@ def create_app():
         Returns:
             JSON response containing the access token or an error message.
         """
-        data = request.get_json()
+        try:
+            data = request.get_json()
 
-        # Check if email and password are provided in the request
-        if not data or 'email' not in data or 'password' not in data:
-            return jsonify({'error': 'Missing email or password'}), 400
+            # Check if email and password are provided in the request
+            if not data:
+                return jsonify({'error': 'Missing request body'}), 400
+                
+            if 'email' not in data:
+                return jsonify({'error': 'Email is required'}), 400
+                
+            if 'password' not in data:
+                return jsonify({'error': 'Password is required'}), 400
 
-        # Find user by email
-        user = User.query.filter_by(email=data['email']).first()
+            # Find user by email
+            user = User.query.filter_by(email=data['email']).first()
 
-        # Validate user and password
-        if not user or not check_password_hash(user.password_hash, data['password']):
-            return jsonify({'error': 'Invalid credentials'}), 401
+            # Validate user and password
+            if not user:
+                return jsonify({'error': 'User not found'}), 401
+                
+            if not check_password_hash(user.password_hash, data['password']):
+                return jsonify({'error': 'Invalid password'}), 401
 
-        # Generate JWT token upon successful login
-        access_token = create_access_token(identity=str(user.user_id))
-        return jsonify({'access_token': access_token}), 200
+            # Generate JWT token upon successful login
+            access_token = create_access_token(identity=str(user.user_id))
+            return jsonify({'access_token': access_token}), 200
+            
+        except Exception as e:
+            return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
     # ---------------- ERROR HANDLERS ----------------
 
@@ -124,32 +137,25 @@ def create_app():
         Returns:
             JSON response with a message for the authenticated user.
         """
-        current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        try:
+            current_user_id = get_jwt_identity()
+            
+            # Handle invalid UUID format
+            try:
+                user = User.query.get(current_user_id)
+            except Exception as e:
+                return jsonify({'error': 'Invalid user ID format', 'message': str(e)}), 400
 
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
 
-        return jsonify({
-            'message': f'Hello {user.username}, you are authenticated!',
-            'user_id': current_user_id
-        })
-
-    # ---------------- CACHED USER FETCH ----------------
-
-    @app.route('/users', methods=['GET'])
-    @cache.cached(timeout=300, key_prefix='all_users')  # Cache results for 5 minutes
-    def fetch_users():
-        """
-        Fetch all users from the database with caching enabled.
-
-        Returns:
-            JSON response containing a list of all users.
-        """
-        users = get_all_users()
-        # Convert the list of User objects to a list of dictionaries using to_dict
-        users_list = [user.to_dict() for user in users]
-        return jsonify(users_list), 200
+            return jsonify({
+                'message': f'Hello {user.username}, you are authenticated!',
+                'user_id': current_user_id
+            })
+            
+        except Exception as e:
+            return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
     return app
 

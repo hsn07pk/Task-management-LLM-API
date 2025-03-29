@@ -1,10 +1,11 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import User, db
+from models import User, db, get_all_users
 from werkzeug.security import generate_password_hash
 from validators.validators import validate_json
 from schemas.schemas import USER_SCHEMA
 from extentions.extensions import cache
+from uuid import UUID
 
 user_bp = Blueprint('user_routes', __name__)
 
@@ -76,6 +77,9 @@ def create_user():
         db.session.commit()
         return jsonify(new_user.to_dict()), 201
 
+    except KeyError as e:
+        db.session.rollback()
+        return jsonify({'error': 'Missing required field', 'message': f'Field {str(e)} is required'}), 400
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
@@ -95,10 +99,13 @@ def get_user(user_id):
     :status 200: Successfully retrieved user details.
     :status 404: User not found.
     """
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-    return jsonify(user.to_dict()), 200
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        return jsonify(user.to_dict()), 200
+    except Exception as e:
+        return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 @user_bp.route('/users/<uuid:user_id>', methods=['PUT'])
 @jwt_required()
@@ -119,26 +126,48 @@ def update_user(user_id):
     :status 403: Unauthorized access (if user tries to update someone else's details).
     :status 404: User not found.
     """
-    current_user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-    
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-    if str(user.user_id) != current_user_id and user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Verify current user exists
+        current_user = User.query.get(current_user_id)
+        if not current_user:
+            return jsonify({'error': 'Current user not found'}), 404
+            
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+            
+        if str(user.user_id) != current_user_id and current_user.role != 'admin':
+            return jsonify({'error': 'Unauthorized'}), 403
 
-    data = request.get_json()
-    if 'username' in data:
-        user.username = data['username']
-    if 'email' in data:
-        user.email = data['email']
-    if 'password' in data:
-        user.password_hash = generate_password_hash(data['password'])
-    if 'role' in data and user.role == 'admin':  # Only admins can change roles
-        user.role = data['role']
+        data = request.get_json()
+        
+        # Check if username already exists (if it's being updated)
+        if 'username' in data and data['username'] != user.username:
+            if User.query.filter_by(username=data['username']).first():
+                return jsonify({'error': 'Username already exists'}), 400
+            user.username = data['username']
+            
+        # Check if email already exists (if it's being updated)
+        if 'email' in data and data['email'] != user.email:
+            if User.query.filter_by(email=data['email']).first():
+                return jsonify({'error': 'Email already exists'}), 400
+            user.email = data['email']
+            
+        if 'password' in data:
+            user.password_hash = generate_password_hash(data['password'])
+            
+        if 'role' in data and current_user.role == 'admin':  # Only admins can change roles
+            user.role = data['role']
 
-    db.session.commit()
-    return jsonify(user.to_dict()), 200
+        db.session.commit()
+        return jsonify(user.to_dict()), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
 
 @user_bp.route('/users/<uuid:user_id>', methods=['DELETE'])
 @jwt_required()
@@ -155,14 +184,55 @@ def delete_user(user_id):
     :status 403: Admin privileges required.
     :status 404: User not found.
     """
-    current_user = User.query.get(get_jwt_identity())
-    if current_user.role != 'admin':
-        return jsonify({'error': 'Admin privileges required'}), 403
-    
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-    
-    db.session.delete(user)
-    db.session.commit()
-    return jsonify({'message': 'User deleted successfully'}), 200
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Verify current user exists
+        current_user = User.query.get(current_user_id)
+        if not current_user:
+            return jsonify({'error': 'Current user not found'}), 404
+            
+        if current_user.role != 'admin':
+            return jsonify({'error': 'Admin privileges required'}), 403
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({'message': 'User deleted successfully'}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
+
+# ---------------- CACHED USER FETCH ----------------
+@user_bp.route('/users', methods=['GET'])
+@cache.cached(timeout=300, key_prefix='all_users')  # Cache results for 5 minutes
+def fetch_users():
+    """
+    Fetch all users from the database with caching enabled.
+
+    Returns:
+        JSON response containing a list of all users.
+    """
+    try:
+        users = get_all_users()
+        
+        if users is None:
+            return jsonify({'error': 'Failed to retrieve users'}), 500
+            
+        # Convert the list of User objects to a list of dictionaries using to_dict
+        users_list = []
+        for user in users:
+            try:
+                users_list.append(user.to_dict())
+            except Exception as e:
+                # Continue with other users if one fails to convert
+                continue
+                
+        return jsonify(users_list), 200
+        
+    except Exception as e:
+        return jsonify({'error': 'Internal server error', 'message': str(e)}), 500

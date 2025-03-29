@@ -8,7 +8,17 @@ from sqlalchemy import text
 
 @pytest.fixture(scope="session")
 def app():
-    """Create and configure a Flask app for testing with PostgreSQL."""
+    """
+    Creates and configures a Flask application for testing purposes.
+    
+    This fixture sets up a PostgreSQL database for testing, clears the database schema 
+    before running tests, and ensures that all the tables are created before the tests 
+    begin. After tests are run, it cleans up by removing the schema and committing any 
+    changes to the database.
+    
+    Yields:
+        app (Flask): The Flask application instance configured for testing.
+    """
     app = create_app()
     app.config.update({
         'TESTING': True,
@@ -34,7 +44,19 @@ def app():
 
 @pytest.fixture(scope="function")
 def client(app):
-    """Test client for the app."""
+    """
+    Provides a test client for the Flask app.
+
+    This fixture creates a testing client that interacts with the app through 
+    HTTP requests. Each test is wrapped in a database transaction that is 
+    rolled back after the test to ensure isolation between tests.
+    
+    Args:
+        app (Flask): The Flask application instance.
+
+    Yields:
+        testing_client (FlaskClient): The Flask test client instance.
+    """
     with app.test_client() as testing_client:
         with app.app_context():
             # Start a nested transaction for test isolation
@@ -49,7 +71,20 @@ def client(app):
 
 @pytest.fixture(scope="function")
 def auth_headers(client, app):
-    """Get auth headers with JWT token."""
+    """
+    Provides authorization headers for making authenticated requests.
+
+    This fixture creates a test user, logs them in, and returns the 
+    Authorization header containing a JWT token that can be used 
+    for authentication in subsequent requests.
+
+    Args:
+        client (FlaskClient): The Flask test client.
+        app (Flask): The Flask application instance.
+
+    Returns:
+        dict: A dictionary containing the Authorization header with the JWT token.
+    """
     # Create a test user with admin role
     with app.app_context():
         user = User(
@@ -72,7 +107,18 @@ def auth_headers(client, app):
     return {'Authorization': f'Bearer {token}'}
 
 def test_create_user(client, app):
-    """Test creating a new user."""
+    """
+    Tests creating a new user.
+
+    This test checks if a user can be successfully created by sending a POST 
+    request to the `/users` endpoint with a valid payload. It verifies that 
+    the user is created by checking the response status and the returned 
+    user data.
+    
+    Args:
+        client (FlaskClient): The Flask test client.
+        app (Flask): The Flask application instance.
+    """
     with app.app_context():
         response = client.post('/users', json={
             'username': 'newuser',
@@ -85,7 +131,16 @@ def test_create_user(client, app):
         assert data['email'] == 'new@example.com'
 
 def test_create_user_duplicate_email(client, app):
-    """Test creating a user with duplicate email."""
+    """
+    Tests creating a user with a duplicate email.
+
+    This test checks if an attempt to create a user with an email that 
+    already exists results in an appropriate error response.
+    
+    Args:
+        client (FlaskClient): The Flask test client.
+        app (Flask): The Flask application instance.
+    """
     with app.app_context():
         # Create first user
         client.post('/users', json={
@@ -94,7 +149,7 @@ def test_create_user_duplicate_email(client, app):
             'password': 'password123'
         })
         
-        # Try to create second user with same email
+        # Try to create second user with the same email
         response = client.post('/users', json={
             'username': 'user2',
             'email': 'duplicate@example.com',
@@ -104,7 +159,16 @@ def test_create_user_duplicate_email(client, app):
         assert 'Email already exists' in json.loads(response.data)['error']
 
 def test_create_user_duplicate_username(client, app):
-    """Test creating a user with duplicate username."""
+    """
+    Tests creating a user with a duplicate username.
+
+    This test checks if an attempt to create a user with a username that 
+    already exists results in an appropriate error response.
+    
+    Args:
+        client (FlaskClient): The Flask test client.
+        app (Flask): The Flask application instance.
+    """
     with app.app_context():
         # Create first user
         client.post('/users', json={
@@ -113,7 +177,7 @@ def test_create_user_duplicate_username(client, app):
             'password': 'password123'
         })
         
-        # Try to create second user with same username
+        # Try to create second user with the same username
         response = client.post('/users', json={
             'username': 'sameusername',
             'email': 'user2@example.com',
@@ -123,7 +187,17 @@ def test_create_user_duplicate_username(client, app):
         assert 'Username already exists' in json.loads(response.data)['error']
 
 def test_create_user_invalid_data(client, app):
-    """Test creating a user with invalid data."""
+    """
+    Tests creating a user with invalid data.
+
+    This test checks if a user creation attempt with invalid data, such as 
+    an incorrectly formatted email, results in a 400 error and the expected 
+    error message.
+    
+    Args:
+        client (FlaskClient): The Flask test client.
+        app (Flask): The Flask application instance.
+    """
     with app.app_context():
         response = client.post('/users', json={
             'username': 'invaliduser',
@@ -134,7 +208,17 @@ def test_create_user_invalid_data(client, app):
         assert 'Invalid request data' in json.loads(response.data)['error']
 
 def test_get_user(client, auth_headers, app):
-    """Test getting a user by ID."""
+    """
+    Tests retrieving a user by ID.
+
+    This test checks if a user can be successfully retrieved using their 
+    user ID, and verifies that the returned data matches the expected values.
+    
+    Args:
+        client (FlaskClient): The Flask test client.
+        auth_headers (dict): Authorization headers containing JWT token.
+        app (Flask): The Flask application instance.
+    """
     with app.app_context():
         # Create a user
         user = User(
@@ -151,58 +235,3 @@ def test_get_user(client, auth_headers, app):
         data = json.loads(response.data)
         assert data['username'] == 'getuser'
         assert data['email'] == 'get@example.com'
-
-# def test_get_nonexistent_user(client, auth_headers, app):
-#     """Test getting a nonexistent user."""
-#     with app.app_context():
-#         response = client.get(f'/users/{uuid.uuid4()}', headers=auth_headers)
-#         assert response.status_code == 404
-#         assert 'User not found' in json.loads(response.data)['error']
-
-# def test_update_user(client, auth_headers, app):
-#     """Test updating a user."""
-#     with app.app_context():
-#         # Create a user
-#         user = User(
-#             username='updateuser',
-#             email='update@example.com',
-#             password_hash=generate_password_hash('password123')
-#         )
-#         db.session.add(user)
-#         db.session.commit()
-#         user_id = user.user_id
-    
-#         response = client.put(f'/users/{user_id}', headers=auth_headers, json={
-#             'username': 'updateduser',
-#             'email': 'updated@example.com',
-#             'password': 'newpassword123'
-#         })
-#         assert response.status_code == 200
-#         data = json.loads(response.data)
-#         assert data['username'] == 'updateduser'
-#         assert data['email'] == 'updated@example.com'
-        
-#         # Verify password was updated
-#         updated_user = User.query.get(user_id)
-#         assert check_password_hash(updated_user.password_hash, 'newpassword123')
-
-# def test_delete_user(client, auth_headers, app):
-#     """Test deleting a user."""
-#     with app.app_context():
-#         # Create a user
-#         user = User(
-#             username='deleteuser21212',
-#             email='deleteuser21212@example.com',
-#             password_hash=generate_password_hash('password123')
-#         )
-#         db.session.add(user)
-#         db.session.commit()
-#         user_id = user.user_id
-    
-#         response = client.delete(f'/users/{user_id}', headers=auth_headers)
-#         assert response.status_code == 200
-#         assert 'User deleted successfully' in json.loads(response.data)['message']
-        
-#         # Verify user was deleted
-#         deleted_user = User.query.get(user_id)
-#         assert deleted_user is None

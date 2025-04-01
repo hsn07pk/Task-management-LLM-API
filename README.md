@@ -86,4 +86,4 @@ pytest --html=reports/report.html --self-contained-html
 Use this if you want a clean installation of the DB.
 ```sh
 docker-compose down -v 
-docker-compose uo -d ```
+docker-compose up -d ```

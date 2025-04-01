@@ -79,6 +79,6 @@ To run the test cases we need to run
 
 
 ```sh
-pytest -v tests/ --html=reports/test_report.html --self-contained-html
+pytest --html=reports/report.html --self-contained-html
 
 ```

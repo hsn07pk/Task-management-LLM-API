@@ -48,7 +48,7 @@ Before you start, ensure you have the following installed on your system:
 
 ### Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/Abdullah12has/Task-management-LLM-API.git
 cd task-management-api
 ```
 

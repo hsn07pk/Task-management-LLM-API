@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash
 
 from extentions.extensions import cache
 from models import User, db, get_all_users
-from schemas.schemas import USER_SCHEMA
+from schemas.schemas import USER_SCHEMA, USER_UPDATE_SCHEMA
 from validators.validators import validate_json
 
 user_bp = Blueprint("user_routes", __name__)
@@ -120,7 +120,7 @@ def get_user(user_id):
 
 @user_bp.route("/users/<uuid:user_id>", methods=["PUT"])
 @jwt_required()
-@validate_json(USER_SCHEMA)
+@validate_json(USER_UPDATE_SCHEMA)
 def update_user(user_id):
     """
     Update a user's details.

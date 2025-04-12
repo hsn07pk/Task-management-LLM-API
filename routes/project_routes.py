@@ -8,7 +8,7 @@ from models import User, Project, db
 from services.project_services import ProjectService
 from utils.error_handlers import handle_error, handle_exception
 from validators.validators import validate_json
-from schemas.schemas import PROJECT_SCHEMA
+from schemas.schemas import PROJECT_SCHEMA, PROJECT_UPDATE_SCHEMA
 
 # Define the Blueprint
 project_bp = Blueprint("project_routes", __name__)
@@ -59,7 +59,7 @@ def get_project(project_id):
 
 @project_bp.route("/projects/<uuid:project_id>", methods=["PUT"])
 @jwt_required()
-@validate_json(PROJECT_SCHEMA)
+@validate_json(PROJECT_UPDATE_SCHEMA)
 def update_project(project_id):
     """Updates an existing project."""
     try:

@@ -231,7 +231,7 @@ def task_operations(task_id):
         elif request.method == "DELETE":
             db.session.delete(task)
             db.session.commit()
-            return "", 204
+            return jsonify({"message": "Task deleted successfully"}), 200
 
         # PUT request - Update the task
         elif request.method == "PUT":

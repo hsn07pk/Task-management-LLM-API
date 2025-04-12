@@ -26,6 +26,16 @@ TEAM_SCHEMA = {
     "required": ["name", "lead_id"],  # Name and lead_id are mandatory
 }
 
+TEAM_UPDATE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "lead_id": {"type": "string", "format": "uuid"},
+        "description": {"type": "string", "minLength": 1},
+    },
+}
+
+
 # TEAM_MEMBERSHIP_SCHEMA: Defines the schema for a team membership object.
 TEAM_MEMBERSHIP_SCHEMA = {
     "type": "object",
@@ -48,7 +58,17 @@ PROJECT_SCHEMA = {
         "team_id": {"type": "string", "format": "uuid"},  # Team ID must be in UUID format
         "category_id": {"type": "string", "format": "uuid"},  # Category ID must be in UUID format
     },
-    "required": ["title", "team_id", "category_id"],  # Required fields
+    "required": ["title", "team_id"],  # Required fields
+}
+
+PROJECT_UPDATE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "description": {"type": "string", "minLength": 1},
+        "team_id": {"type": "string", "format": "uuid"},
+        "category_id": {"type": "string", "format": "uuid"},
+    },
 }
 
 # USER_SCHEMA: Defines the schema for a user object.
@@ -65,3 +85,16 @@ USER_SCHEMA = {
     },
     "required": ["username", "email", "password", "role"],  # Required fields
 }
+
+# USER_SCHEMA: Defines the schema to update a user object.
+USER_UPDATE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "username": {"type": "string", "minLength": 1},
+        "email": {"type": "string", "format": "email"},
+        "password": {"type": "string", "minLength": 8},
+        "role": {"type": "string", "enum": ["admin", "member"]},
+    },
+    # No "required" field for updates
+}
+

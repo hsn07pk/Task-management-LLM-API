@@ -81,6 +81,12 @@ def update_team(team_id):
     user_id = get_jwt_identity()
     data = request.get_json()
     result, status_code = TeamService.update_team(user_id, team_id, data)
+    
+    # Invalidate the cache for this team
+    cache_key = f"team_{user_id}_{team_id}"
+    cache.delete(cache_key)
+    
+    
     return jsonify(result), status_code
 
 

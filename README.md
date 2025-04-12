@@ -92,7 +92,9 @@ docker rm my_postgres_db
 ### Manual Setup (Without Docker)
 
 #### Install PostgreSQL
-Follow the official PostgreSQL installation guide.
+Follow the official PostgreSQL installation guide to set up PostgreSQL on your system.
+
+[PostgreSQL Download Page](https://www.postgresql.org/download/)
 
 #### Create a Database and User
 ```sql

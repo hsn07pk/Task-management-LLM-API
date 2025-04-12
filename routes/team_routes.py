@@ -6,7 +6,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from extentions.extensions import cache
 from models import Team, TeamMembership, User, db
-from schemas.schemas import TEAM_MEMBERSHIP_SCHEMA, TEAM_SCHEMA
+from schemas.schemas import TEAM_MEMBERSHIP_SCHEMA, TEAM_SCHEMA, TEAM_UPDATE_SCHEMA
 from validators.validators import validate_json
 
 # Blueprint for team-related routes
@@ -120,7 +120,7 @@ def get_team(team_id):
 
 @team_bp.route("/teams/<uuid:team_id>", methods=["PUT"])
 @jwt_required()
-@validate_json(TEAM_SCHEMA)
+@validate_json(TEAM_UPDATE_SCHEMA)
 def update_team(team_id):
     """
     Updates an existing team's details.

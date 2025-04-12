@@ -38,7 +38,7 @@ def create_project():
 
 @project_bp.route("/projects/<uuid:project_id>", methods=["GET"])
 @jwt_required()
-@cache.cached(timeout=60)
+@cache.cached(timeout=300, key_prefix=lambda: f"project_{get_jwt_identity()}_{request.view_args['project_id']}")
 def get_project(project_id):
     """Retrieves a specific project by ID."""
     try:
@@ -107,7 +107,7 @@ def delete_project(project_id):
 
 @project_bp.route("/projects", methods=["GET"])
 @jwt_required()
-@cache.cached(timeout=2)
+@cache.cached(timeout=100)
 def get_all_projects():
     """Fetch all projects."""
     try:

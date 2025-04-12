@@ -90,7 +90,7 @@ def create_team():
 
 @team_bp.route("/teams/<uuid:team_id>", methods=["GET"])
 @jwt_required()
-@cache.cached(timeout=60)  # Cache the response for 60 seconds
+@cache.cached(timeout=300, key_prefix=lambda: f"team_{get_jwt_identity()}_{request.view_args['team_id']}")
 def get_team(team_id):
     """
     Retrieves details of a specific team by its ID.

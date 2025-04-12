@@ -96,15 +96,5 @@ class ProjectService:
             db.session.rollback()
             raise Exception(f"Error retrieving projects: {str(e)}")
 
-    @staticmethod
-    def fetch_all_projects():
-        """Retrieve all projects from the database."""
-        try:
-            return Project.query.all()
-        except Exception as e:
-            db.session.rollback()
-            print(f"Exception details: {type(e).__name__}: {str(e)}")
-            raise Exception(f"Error retrieving projects: {str(e)}")
-        
         
 

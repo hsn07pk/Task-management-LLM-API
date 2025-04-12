@@ -126,7 +126,6 @@ class Category(db.Model):
     # Define a single relationship with back_populates to avoid conflicts
     projects = db.relationship("Project", back_populates="category", lazy=True)
 
-
 # Project Model
 class Project(db.Model):
     """
@@ -134,7 +133,7 @@ class Project(db.Model):
     deadline, and relationships with teams and categories.
     """
 
-    __tablename__ = "PROJECT"
+    __tablename__: str = 'PROJECT'
 
     project_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = db.Column(db.String(255), nullable=False)
@@ -171,8 +170,8 @@ class Project(db.Model):
                 },
             }
         except Exception as e:
+            print(f"Error in to_dict: {str(e)}")
             return {"error": f"Error serializing project: {str(e)}"}
-
 
 # Priority Enum
 class PriorityEnum(int, Enum):

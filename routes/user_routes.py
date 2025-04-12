@@ -11,9 +11,9 @@ from services.user_services import UserService
 from validators.validators import validate_json
 
 
-user_bp = Blueprint("user_routes", __name__)
+user_bp = Blueprint("user_routes", __name__, url_prefix="/users") # prefix user so that we don't need to add user again and again
 
-@user_bp.route("/users", methods=["POST"])
+@user_bp.route("/", methods=["POST"])
 @validate_json(USER_SCHEMA)
 def create_user():
     """
@@ -33,7 +33,7 @@ def create_user():
     return jsonify(result), status_code
 
 
-@user_bp.route("/users/<uuid:user_id>", methods=["GET"])
+@user_bp.route("/<uuid:user_id>", methods=["GET"])
 @jwt_required()
 @cache.cached(timeout=300, key_prefix=lambda: f"user_{get_jwt_identity()}_{request.view_args['user_id']}")
 def get_user(user_id):
@@ -52,7 +52,7 @@ def get_user(user_id):
     return jsonify(result), status_code
 
 
-@user_bp.route("/users/<uuid:user_id>", methods=["PUT"])
+@user_bp.route("/<uuid:user_id>", methods=["PUT"])
 @jwt_required()
 @validate_json(USER_UPDATE_SCHEMA)
 def update_user(user_id):
@@ -74,10 +74,12 @@ def update_user(user_id):
     current_user_id = get_jwt_identity()
     data = request.get_json()
     result, status_code = UserService.update_user(user_id, current_user_id, data)
+    cache_key = f"user_{current_user_id}_{user_id}"
+    cache.delete(cache_key)
     return jsonify(result), status_code
 
 
-@user_bp.route("/users/<uuid:user_id>", methods=["DELETE"])
+@user_bp.route("/<uuid:user_id>", methods=["DELETE"])
 @jwt_required()
 def delete_user(user_id):
     """
@@ -97,7 +99,7 @@ def delete_user(user_id):
     return jsonify(result), status_code
 
 
-@user_bp.route("/users", methods=["GET"])
+@user_bp.route("/", methods=["GET"])
 @cache.cached(timeout=200, key_prefix="all_users")  
 def fetch_users():
     """

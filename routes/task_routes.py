@@ -6,7 +6,7 @@ from services.task_service import TaskService
 from schemas.schemas import TASK_SCHEMA
 from validators.validators import validate_json
 
-task_bp = Blueprint("task_routes", __name__)
+task_bp = Blueprint("task_routes", __name__, url_prefix="/tasks")
 
 @task_bp.errorhandler(400)
 def bad_request(error):
@@ -20,7 +20,7 @@ def not_found(error):
 def internal_error(error):
     return jsonify({"error": "Internal Server Error", "message": str(error)}), 500
 
-@task_bp.route("/tasks", methods=["POST"])
+@task_bp.route("/", methods=["POST"])
 @jwt_required()
 @validate_json(TASK_SCHEMA)
 def create_task():
@@ -37,7 +37,7 @@ def create_task():
     except Exception as e:
         return jsonify({"error": "Internal server error", "message": str(e)}), 500
 
-@task_bp.route("/tasks/<uuid:task_id>", methods=["GET", "PUT", "DELETE"])
+@task_bp.route("/<uuid:task_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
 def task_operations(task_id):
     try:
@@ -66,7 +66,7 @@ def task_operations(task_id):
     except Exception as e:
         return jsonify({"error": "Internal server error", "message": str(e)}), 500
 
-@task_bp.route("/tasks", methods=["GET"])
+@task_bp.route("/", methods=["GET"])
 @jwt_required()
 def get_tasks():
     try:

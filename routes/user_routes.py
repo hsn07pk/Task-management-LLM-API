@@ -232,6 +232,7 @@ def fetch_users():
     """
     try:
         users = get_all_users()
+        # print(users)
 
         if users is None:
             return jsonify({"error": "Failed to retrieve users"}), 500

@@ -8,7 +8,7 @@ from flask_jwt_extended import (
     get_jwt_identity,
     jwt_required,
 )
-from werkzeug.security import check_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from extentions.extensions import cache  # Import from extensions
 from models import User, init_db

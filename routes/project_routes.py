@@ -28,6 +28,9 @@ def create_project():
 
         data = request.get_json()
         new_project = ProjectService.create_project(data)
+        
+        cache_key = f"projects_{current_user_id}"
+        cache.delete(cache_key)
         return jsonify(new_project.to_dict()), 201
 
     except ValueError as e:
@@ -75,6 +78,8 @@ def update_project(project_id):
         data = request.get_json()
         updated_project = ProjectService.update_project(project, data)
 
+        cache_key = f"project_{current_user_id}_{project_id}"
+        cache.delete(cache_key)
         return jsonify(updated_project.to_dict()), 200
 
     except ValueError as e:
@@ -98,6 +103,9 @@ def delete_project(project_id):
             return handle_error("Project not found", 404)
 
         ProjectService.delete_project(project)
+        
+        cache_key = f"projects_{current_user_id}"
+        cache.delete(cache_key)
 
         return jsonify({"message": "Project deleted successfully"}), 200
 
@@ -107,7 +115,7 @@ def delete_project(project_id):
 
 @project_bp.route("/projects", methods=["GET"])
 @jwt_required()
-@cache.cached(timeout=100)
+@cache.cached(timeout=300, key_prefix=lambda: f"projects_{get_jwt_identity()}")
 def get_all_projects():
     """Fetch all projects."""
     try:

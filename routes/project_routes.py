@@ -13,7 +13,6 @@ from schemas.schemas import PROJECT_SCHEMA, PROJECT_UPDATE_SCHEMA
 # Define the Blueprint
 project_bp = Blueprint("project_routes", __name__)
 
-# ------------------ PROJECT ROUTES ------------------
 
 @project_bp.route("/projects", methods=["POST"])
 @jwt_required()

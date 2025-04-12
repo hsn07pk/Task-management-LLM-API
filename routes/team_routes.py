@@ -13,12 +13,29 @@ from validators.validators import validate_json
 # Blueprint for team-related routes
 team_bp = Blueprint("team_routes", __name__)
 
-# ------------------ ERROR HANDLERS ------------------
+
+
+
+@team_bp.route("/teams", methods=["GET"])
+@jwt_required()
+@cache.cached(timeout=200, key_prefix=lambda: f"team_all_{get_jwt_identity()}") 
+def get_all_teams():
+    """
+    Retrieves all teams the authenticated user is a member of.
+
+    Returns:
+        - List of teams with their basic info and the user's role.
+        - HTTP Status Code: 200 (OK) on success.
+    """
+    result, status_code = TeamService.get_all_teams()
+    return jsonify(result), status_code
+
 
 @team_bp.route("/teams", methods=["POST"])
 @jwt_required()
 @validate_json(TEAM_SCHEMA)
 def create_team():
+    
     """
     Creates a new team. Only authorized users can create a team.
 
@@ -34,6 +51,8 @@ def create_team():
     user_id = get_jwt_identity()
     data = request.get_json()
     result, status_code = TeamService.create_team(user_id, data)
+    cache_key = f"team_all_{user_id}"
+    cache.delete(cache_key)
     return jsonify(result), status_code
 
 
@@ -54,6 +73,9 @@ def get_team(team_id):
     """
     user_id = get_jwt_identity()
     result, status_code = TeamService.get_team(user_id, team_id)
+    # Invalidate the cache for this team
+    cache_key = f"team_all_{user_id}_{team_id}"
+    cache.delete(cache_key)
     return jsonify(result), status_code
 
 

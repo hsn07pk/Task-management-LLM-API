@@ -11,10 +11,10 @@ from validators.validators import validate_json
 from schemas.schemas import PROJECT_SCHEMA, PROJECT_UPDATE_SCHEMA
 
 # Define the Blueprint
-project_bp = Blueprint("project_routes", __name__)
+project_bp = Blueprint("project_routes", __name__, url_prefix="/projects")
 
 
-@project_bp.route("/projects", methods=["POST"])
+@project_bp.route("/", methods=["POST"])
 @jwt_required()
 @validate_json(PROJECT_SCHEMA)
 def create_project():
@@ -38,7 +38,7 @@ def create_project():
         return handle_exception(e)
 
 
-@project_bp.route("/projects/<uuid:project_id>", methods=["GET"])
+@project_bp.route("/<uuid:project_id>", methods=["GET"])
 @jwt_required()
 @cache.cached(timeout=300, key_prefix=lambda: f"project_{get_jwt_identity()}_{request.view_args['project_id']}")
 def get_project(project_id):
@@ -59,7 +59,7 @@ def get_project(project_id):
         return handle_exception(e)
 
 
-@project_bp.route("/projects/<uuid:project_id>", methods=["PUT"])
+@project_bp.route("/<uuid:project_id>", methods=["PUT"])
 @jwt_required()
 @validate_json(PROJECT_UPDATE_SCHEMA)
 def update_project(project_id):
@@ -87,7 +87,7 @@ def update_project(project_id):
         return handle_exception(e)
 
 
-@project_bp.route("/projects/<uuid:project_id>", methods=["DELETE"])
+@project_bp.route("/<uuid:project_id>", methods=["DELETE"])
 @jwt_required()
 def delete_project(project_id):
     """Deletes a project."""
@@ -112,7 +112,7 @@ def delete_project(project_id):
         return handle_exception(e)
 
 
-@project_bp.route("/projects", methods=["GET"])
+@project_bp.route("/", methods=["GET"])
 @jwt_required()
 @cache.cached(timeout=300, key_prefix=lambda: f"projects_{get_jwt_identity()}")
 def get_all_projects():

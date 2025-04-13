@@ -595,6 +595,223 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /teams/{team_id}/members:
+    post:
+      summary: Add a member to a team
+      description: Adds a user to the specified team with a designated role.
+      tags:
+        - Team Members
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamMemberAddRequest'
+            example:
+              user_id: "abc123-4567-890a-bcdef1234567"
+              role: "developer"
+      responses:
+        '201':
+          description: Member added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamMember'
+              example:
+                user_id: "abc123-4567-890a-bcdef1234567"
+                role: "developer"
+        '400':
+          description: Bad request (e.g., user already a member)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad Request"
+                message: "User is already a member of the team"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get team members
+      description: Retrieves all members of the specified team.
+      tags:
+        - Team Members
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of team members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TeamMember'
+              example:
+                - user_id: "abc123-4567-890a-bcdef1234567"
+                  role: "developer"
+                - user_id: "def456-7890-123b-cdefg4567890"
+                  role: "tester"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /teams/{team_id}/members/{user_id}:
+    put:
+      summary: Update a team member's role
+      description: Updates the role of a specific user within the team.
+      tags:
+        - Team Members
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamMemberUpdateRequest'
+            example:
+              role: "lead"
+      responses:
+        '200':
+          description: Role updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamMember'
+              example:
+                user_id: "abc123-4567-890a-bcdef1234567"
+                role: "lead"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Membership not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Remove a member from a team
+      description: Removes the specified user from the team.
+      tags:
+        - Team Members
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Member removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: "User removed from the team successfully."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Membership not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /projects:
     post:
       summary: Create a new project
@@ -1165,6 +1382,7 @@ paths:
             example:
               name: "Web Development"
               description: "Projects related to web application development"
+      deprecated: true 
       responses:
         '201':
           description: Category created successfully
@@ -1204,6 +1422,7 @@ paths:
         - Categories
       security:
         - bearerAuth: []
+      deprecated: true 
       responses:
         '200':
           description: List of categories
@@ -1248,6 +1467,7 @@ paths:
             type: string
             format: uuid
           example: "cat123-4567-890a-bcdef1234567"
+      deprecated: true 
       responses:
         '200':
           description: Category details
@@ -1304,6 +1524,7 @@ paths:
             example:
               name: "Full-Stack Web Development"
               description: "Projects related to full-stack web application development"
+      deprecated: true 
       responses:
         '200':
           description: Category updated successfully
@@ -1354,6 +1575,7 @@ paths:
             type: string
             format: uuid
           example: "cat123-4567-890a-bcdef1234567"
+      deprecated: true 
       responses:
         '200':
           description: Category deleted successfully
@@ -1507,6 +1729,35 @@ components:
         - team_id
         - name
         - lead_id
+    TeamMemberAddRequest:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+      required:
+        - user_id
+        - role
+    TeamMemberUpdateRequest:
+      type: object
+      properties:
+        role:
+          type: string
+      required:
+        - role
+    TeamMember:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+      required:
+        - user_id
+        - role
     ProjectCreateRequest:
       type: object
       properties:

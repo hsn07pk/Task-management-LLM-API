@@ -330,3 +330,8 @@ python code_quality.py --fix
 ### Code Quality Failures
 - Review the generated reports for detailed feedback.
 - Run python code_quality.py --fix to automatically correct formatting issues.
+
+### Test Coverage 
+```bash
+coverage report -m
+```

@@ -1,0 +1,1916 @@
+openapi: 3.0.4
+info:
+  title: Task Management API
+  version: 1.0.0
+  description: |
+    This API provides endpoints for managing users, teams, projects, and tasks.
+  contact:
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: /
+paths:
+  /login:
+    post:
+      summary: User login
+      description: Authenticate a user and return a JWT token.
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: "user@example.com"
+              password: "secure_password123"
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZGVudGl0eSI6ImFiYzEyMy00NTY3LTg5MGEtYmNkZWYxMjM0NTY3IiwiZXhwIjoxNjE3MTkwMjMzfQ.JLg-ZI1tQ0dKbW-jfPj7qdOrj5RwU6Xp7s9Qg94U"
+        '400':
+          description: Bad request (missing fields)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Missing request body"
+                message: "Email and password are required"
+        '401':
+          description: Unauthorized (invalid credentials)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized"
+                message: "Invalid email or password"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Internal Server Error"
+                message: "An unexpected error occurred"
+  /test:
+    get:
+      summary: Test endpoint
+      description: Test endpoint to check JWT authentication and caching functionality.
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful authentication test
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  user_id:
+                    type: string
+              example:
+                message: "Hello john_doe, you are authenticated!"
+                user_id: "abc123-4567-890a-bcdef1234567"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Invalid user ID format"
+                message: "User ID must be a valid UUID"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized"
+                message: "Token is missing or invalid"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not Found"
+                message: "User with provided ID not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users:
+    post:
+      summary: Create a new user
+      description: Create a new user with the provided details.
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+            example:
+              username: "john_doe"
+              email: "john@example.com"
+              password: "secure_password123"
+              role: "developer"
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              example:
+                user_id: "abc123-4567-890a-bcdef1234567"
+                username: "john_doe"
+                email: "john@example.com"
+                role: "developer"
+        '400':
+          description: Bad request (duplicate email or username)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad Request"
+                message: "Email or username already exists"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: Get all users
+      description: Retrieve a list of all users.
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+              example:
+                - user_id: "abc123-4567-890a-bcdef1234567"
+                  username: "john_doe"
+                  email: "john@example.com"
+                  role: "developer"
+                - user_id: "def456-7890-123b-cdefg4567890"
+                  username: "jane_smith"
+                  email: "jane@example.com"
+                  role: "manager"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/{user_id}:
+    get:
+      summary: Get user details
+      description: Retrieve details of a specific user.
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "abc123-4567-890a-bcdef1234567"
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              example:
+                user_id: "abc123-4567-890a-bcdef1234567"
+                username: "john_doe"
+                email: "john@example.com"
+                role: "developer"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not Found"
+                message: "User with ID abc123-4567-890a-bcdef1234567 not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Update user details
+      description: Update details of a specific user.
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "abc123-4567-890a-bcdef1234567"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+            example:
+              username: "john_doe_updated"
+              email: "john_updated@example.com"
+              role: "senior_developer"
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              example:
+                user_id: "abc123-4567-890a-bcdef1234567"
+                username: "john_doe_updated"
+                email: "john_updated@example.com"
+                role: "senior_developer"
+        '400':
+          description: Bad request (duplicate email or username)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete a user
+      description: Delete a specific user.
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "abc123-4567-890a-bcdef1234567"
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: "User deleted successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /teams:
+    post:
+      summary: Create a new team
+      description: Create a new team with the provided details.
+      tags:
+        - Teams
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamCreateRequest'
+            example:
+              name: "Development Team A"
+              description: "Backend development team for Project X"
+              lead_id: "abc123-4567-890a-bcdef1234567"
+      responses:
+        '201':
+          description: Team created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+              example:
+                team_id: "xyz789-4567-890a-bcdef1234567"
+                name: "Development Team A"
+                description: "Backend development team for Project X"
+                lead_id: "abc123-4567-890a-bcdef1234567"
+        '400':
+          description: Bad request (invalid lead_id)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad Request"
+                message: "Lead ID must be a valid existing user ID"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: Get all teams
+      description: Retrieve a list of all teams.
+      tags:
+        - Teams
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Team'
+              example:
+                - team_id: "xyz789-4567-890a-bcdef1234567"
+                  name: "Development Team A"
+                  description: "Backend development team for Project X"
+                  lead_id: "abc123-4567-890a-bcdef1234567"
+                - team_id: "uvw456-7890-123b-cdefg4567890"
+                  name: "QA Team"
+                  description: "Quality Assurance Team"
+                  lead_id: "def456-7890-123b-cdefg4567890"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /teams/{team_id}:
+    get:
+      summary: Get team details
+      description: Retrieve details of a specific team.
+      tags:
+        - Teams
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "xyz789-4567-890a-bcdef1234567"
+      responses:
+        '200':
+          description: Team details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+              example:
+                team_id: "xyz789-4567-890a-bcdef1234567"
+                name: "Development Team A"
+                description: "Backend development team for Project X"
+                lead_id: "abc123-4567-890a-bcdef1234567"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Update team details
+      description: Update details of a specific team.
+      tags:
+        - Teams
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "xyz789-4567-890a-bcdef1234567"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamUpdateRequest'
+            example:
+              name: "Development Team A - Updated"
+              description: "Backend development team for Project X and Y"
+              lead_id: "def456-7890-123b-cdefg4567890"
+      responses:
+        '200':
+          description: Team updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+              example:
+                team_id: "xyz789-4567-890a-bcdef1234567"
+                name: "Development Team A - Updated"
+                description: "Backend development team for Project X and Y"
+                lead_id: "def456-7890-123b-cdefg4567890"
+        '400':
+          description: Bad request (invalid lead_id)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete a team
+      description: Delete a specific team.
+      tags:
+        - Teams
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "xyz789-4567-890a-bcdef1234567"
+      responses:
+        '200':
+          description: Team deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: "Team deleted successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /teams/{team_id}/members:
+    post:
+      summary: Add a member to a team
+      description: Adds a user to the specified team with a designated role.
+      tags:
+        - Team Members
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "xyz789-4567-890a-bcdef1234567"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamMemberAddRequest'
+            example:
+              user_id: "abc123-4567-890a-bcdef1234567"
+              role: "developer"
+      responses:
+        '201':
+          description: Member added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamMember'
+              example:
+                user_id: "abc123-4567-890a-bcdef1234567"
+                role: "developer"
+        '400':
+          description: Bad request (e.g., user already a member)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad Request"
+                message: "User is already a member of the team"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get team members
+      description: Retrieves all members of the specified team.
+      tags:
+        - Team Members
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "xyz789-4567-890a-bcdef1234567"
+      responses:
+        '200':
+          description: List of team members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TeamMember'
+              example:
+                - user_id: "abc123-4567-890a-bcdef1234567"
+                  role: "developer"
+                - user_id: "def456-7890-123b-cdefg4567890"
+                  role: "tester"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /teams/{team_id}/members/{user_id}:
+    put:
+      summary: Update a team member's role
+      description: Updates the role of a specific user within the team.
+      tags:
+        - Team Members
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "xyz789-4567-890a-bcdef1234567"
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "abc123-4567-890a-bcdef1234567"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamMemberUpdateRequest'
+            example:
+              role: "lead"
+      responses:
+        '200':
+          description: Role updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamMember'
+              example:
+                user_id: "abc123-4567-890a-bcdef1234567"
+                role: "lead"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Membership not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Remove a member from a team
+      description: Removes the specified user from the team.
+      tags:
+        - Team Members
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "xyz789-4567-890a-bcdef1234567"
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "abc123-4567-890a-bcdef1234567"
+      responses:
+        '200':
+          description: Member removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: "User removed from the team successfully."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Membership not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /projects:
+    post:
+      summary: Create a new project
+      description: Create a new project with the provided details.
+      tags:
+        - Projects
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateRequest'
+            example:
+              title: "New Web Application"
+              description: "Developing a responsive web application for client X"
+              team_id: "xyz789-4567-890a-bcdef1234567"
+              category_id: "cat123-4567-890a-bcdef1234567"
+      responses:
+        '201':
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+              example:
+                project_id: "proj123-4567-890a-bcdef1234567"
+                title: "New Web Application"
+                description: "Developing a responsive web application for client X"
+                team_id: "xyz789-4567-890a-bcdef1234567"
+                category_id: "cat123-4567-890a-bcdef1234567"
+        '400':
+          description: Bad request (invalid team_id or category_id)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: Get all projects
+      description: Retrieve a list of all projects.
+      tags:
+        - Projects
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+              example:
+                - project_id: "proj123-4567-890a-bcdef1234567"
+                  title: "New Web Application"
+                  description: "Developing a responsive web application for client X"
+                  team_id: "xyz789-4567-890a-bcdef1234567"
+                  category_id: "cat123-4567-890a-bcdef1234567"
+                - project_id: "proj456-7890-123b-cdefg4567890"
+                  title: "Mobile App Development"
+                  description: "iOS and Android app for client Y"
+                  team_id: "uvw456-7890-123b-cdefg4567890"
+                  category_id: "cat456-7890-123b-cdefg4567890"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /projects/{project_id}:
+    get:
+      summary: Get project details
+      description: Retrieve details of a specific project.
+      tags:
+        - Projects
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "proj123-4567-890a-bcdef1234567"
+      responses:
+        '200':
+          description: Project details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+              example:
+                project_id: "proj123-4567-890a-bcdef1234567"
+                title: "New Web Application"
+                description: "Developing a responsive web application for client X"
+                team_id: "xyz789-4567-890a-bcdef1234567"
+                category_id: "cat123-4567-890a-bcdef1234567"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Update project details
+      description: Update details of a specific project.
+      tags:
+        - Projects
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "proj123-4567-890a-bcdef1234567"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectUpdateRequest'
+            example:
+              title: "Updated Web Application"
+              description: "Enhanced version of web application for client X"
+              team_id: "xyz789-4567-890a-bcdef1234567"
+              category_id: "cat123-4567-890a-bcdef1234567"
+      responses:
+        '200':
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+              example:
+                project_id: "proj123-4567-890a-bcdef1234567"
+                title: "Updated Web Application"
+                description: "Enhanced version of web application for client X"
+                team_id: "xyz789-4567-890a-bcdef1234567"
+                category_id: "cat123-4567-890a-bcdef1234567"
+        '400':
+          description: Bad request (invalid team_id or category_id)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete a project
+      description: Delete a specific project.
+      tags:
+        - Projects
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "proj123-4567-890a-bcdef1234567"
+      responses:
+        '200':
+          description: Project deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: "Project deleted successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /tasks:
+    post:
+      summary: Create a new task
+      description: Create a new task with the provided details.
+      tags:
+        - Tasks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreateRequest'
+            example:
+              title: "Implement User Authentication"
+              description: "Add JWT-based authentication to the backend API"
+              project_id: "proj123-4567-890a-bcdef1234567"
+              assignee_id: "abc123-4567-890a-bcdef1234567"
+              status: "pending"
+              priority: 1
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              example:
+                task_id: "task123-4567-890a-bcdef1234567"
+                title: "Implement User Authentication"
+                description: "Add JWT-based authentication to the backend API"
+                project_id: "proj123-4567-890a-bcdef1234567"
+                assignee_id: "abc123-4567-890a-bcdef1234567"
+                status: "pending"
+                priority: 1
+        '400':
+          description: Bad request (invalid project_id or assignee_id)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad Request"
+                message: "Invalid project ID or assignee ID"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: Get all tasks
+      description: Retrieve a list of all tasks.
+      tags:
+        - Tasks
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: project_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          example: "proj123-4567-890a-bcdef1234567"
+          description: Filter tasks by project ID
+        - name: assignee_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          example: "abc123-4567-890a-bcdef1234567"
+          description: Filter tasks by assignee ID
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, in_progress, completed]
+          example: "in_progress"
+          description: Filter tasks by status
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+              examples:
+                allTasks:
+                  summary: All Tasks
+                  value:
+                    - task_id: "task123-4567-890a-bcdef1234567"
+                      title: "Implement User Authentication"
+                      description: "Add JWT-based authentication to the backend API"
+                      project_id: "proj123-4567-890a-bcdef1234567"
+                      assignee_id: "abc123-4567-890a-bcdef1234567"
+                      status: "pending"
+                      priority: 1
+                    - task_id: "task456-7890-123b-cdefg4567890"
+                      title: "Design Database Schema"
+                      description: "Create database schema for the project"
+                      project_id: "proj123-4567-890a-bcdef1234567"
+                      assignee_id: "def456-7890-123b-cdefg4567890"
+                      status: "in_progress"
+                      priority: 2
+                filteredTasks:
+                  summary: Filtered Tasks by Status
+                  value:
+                    - task_id: "task456-7890-123b-cdefg4567890"
+                      title: "Design Database Schema"
+                      description: "Create database schema for the project"
+                      project_id: "proj123-4567-890a-bcdef1234567"
+                      assignee_id: "def456-7890-123b-cdefg4567890"
+                      status: "in_progress"
+                      priority: 2
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /tasks/{task_id}:
+    get:
+      summary: Get task details
+      description: Retrieve details of a specific task.
+      tags:
+        - Tasks
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "task123-4567-890a-bcdef1234567"
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              example:
+                task_id: "task123-4567-890a-bcdef1234567"
+                title: "Implement User Authentication"
+                description: "Add JWT-based authentication to the backend API"
+                project_id: "proj123-4567-890a-bcdef1234567"
+                assignee_id: "abc123-4567-890a-bcdef1234567"
+                status: "pending"
+                priority: 1
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not Found"
+                message: "Task with ID task123-4567-890a-bcdef1234567 not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Update task details
+      description: Update details of a specific task.
+      tags:
+        - Tasks
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "task123-4567-890a-bcdef1234567"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdateRequest'
+            example:
+              title: "Updated User Authentication"
+              description: "Implement OAuth2 instead of basic JWT authentication"
+              status: "in_progress"
+              priority: 2
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              example:
+                task_id: "task123-4567-890a-bcdef1234567"
+                title: "Updated User Authentication"
+                description: "Implement OAuth2 instead of basic JWT authentication"
+                project_id: "proj123-4567-890a-bcdef1234567"
+                assignee_id: "abc123-4567-890a-bcdef1234567"
+                status: "in_progress"
+                priority: 2
+        '400':
+          description: Bad request (invalid status or priority)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad Request"
+                message: "Invalid status or priority value"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not Found"
+                message: "Task with ID task123-4567-890a-bcdef1234567 not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete a task
+      description: Delete a specific task.
+      tags:
+        - Tasks
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "task123-4567-890a-bcdef1234567"
+      responses:
+        '200':
+          description: Task deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: "Task deleted successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not Found"
+                message: "Task with ID task123-4567-890a-bcdef1234567 not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /categories:
+    post:
+      summary: Create a new category
+      description: Create a new project category with the provided details.
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreateRequest'
+            example:
+              name: "Web Development"
+              description: "Projects related to web application development"
+      deprecated: true 
+      responses:
+        '201':
+          description: Category created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+              example:
+                category_id: "cat123-4567-890a-bcdef1234567"
+                name: "Web Development"
+                description: "Projects related to web application development"
+        '400':
+          description: Bad request (duplicate category name)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad Request"
+                message: "Category name already exists"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: Get all categories
+      description: Retrieve a list of all project categories.
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      deprecated: true 
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+              example:
+                - category_id: "cat123-4567-890a-bcdef1234567"
+                  name: "Web Development"
+                  description: "Projects related to web application development"
+                - category_id: "cat456-7890-123b-cdefg4567890"
+                  name: "Mobile Development"
+                  description: "Projects related to mobile application development"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /categories/{category_id}:
+    get:
+      summary: Get category details
+      description: Retrieve details of a specific project category.
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "cat123-4567-890a-bcdef1234567"
+      deprecated: true 
+      responses:
+        '200':
+          description: Category details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+              example:
+                category_id: "cat123-4567-890a-bcdef1234567"
+                name: "Web Development"
+                description: "Projects related to web application development"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not Found"
+                message: "Category with ID cat123-4567-890a-bcdef1234567 not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Update category details
+      description: Update details of a specific project category.
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "cat123-4567-890a-bcdef1234567"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryUpdateRequest'
+            example:
+              name: "Full-Stack Web Development"
+              description: "Projects related to full-stack web application development"
+      deprecated: true 
+      responses:
+        '200':
+          description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+              example:
+                category_id: "cat123-4567-890a-bcdef1234567"
+                name: "Full-Stack Web Development"
+                description: "Projects related to full-stack web application development"
+        '400':
+          description: Bad request (duplicate category name)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete a category
+      description: Delete a specific project category.
+      tags:
+        - Categories
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "cat123-4567-890a-bcdef1234567"
+      deprecated: true 
+      responses:
+        '200':
+          description: Category deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: "Category deleted successfully"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+      required:
+        - access_token
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message
+    UserCreateRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        role:
+          type: string
+      required:
+        - username
+        - email
+        - password
+        - role
+    UserUpdateRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        role:
+          type: string
+    User:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+      required:
+        - user_id
+        - username
+        - email
+        - role
+    TeamCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        lead_id:
+          type: string
+          format: uuid
+      required:
+        - name
+        - lead_id
+    TeamUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        lead_id:
+          type: string
+          format: uuid
+    Team:
+      type: object
+      properties:
+        team_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        lead_id:
+          type: string
+          format: uuid
+      required:
+        - team_id
+        - name
+        - lead_id
+    TeamMemberAddRequest:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+      required:
+        - user_id
+        - role
+    TeamMemberUpdateRequest:
+      type: object
+      properties:
+        role:
+          type: string
+      required:
+        - role
+    TeamMember:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+      required:
+        - user_id
+        - role
+    ProjectCreateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        team_id:
+          type: string
+          format: uuid
+        category_id:
+          type: string
+          format: uuid
+      required:
+        - title
+        - team_id
+        - category_id
+    ProjectUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        team_id:
+          type: string
+          format: uuid
+        category_id:
+          type: string
+          format: uuid
+    Project:
+      type: object
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        team_id:
+          type: string
+          format: uuid
+        category_id:
+          type: string
+          format: uuid
+      required:
+        - project_id
+        - title
+        - team_id
+        - category_id
+    TaskCreateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        project_id:
+          type: string
+          format: uuid
+        assignee_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, in_progress, completed]
+        priority:
+          type: integer
+          minimum: 1
+          maximum: 3
+      required:
+        - title
+        - project_id
+        - assignee_id
+        - status
+        - priority
+    TaskUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [pending, in_progress, completed]
+        priority:
+          type: integer
+          minimum: 1
+          maximum: 3
+    Task:
+      type: object
+      properties:
+        task_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        project_id:
+          type: string
+          format: uuid
+        assignee_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, in_progress, completed]
+        priority:
+          type: integer
+          minimum: 1
+          maximum: 3
+      required:
+        - task_id
+        - title
+        - project_id
+        - assignee_id
+        - status
+        - priority
+    CategoryCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      required:
+        - name
+    CategoryUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+    Category:
+      type: object
+      properties:
+        category_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+      required:
+        - category_id
+        - name

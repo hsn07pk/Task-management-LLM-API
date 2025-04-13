@@ -1,0 +1,654 @@
+openapi: 3.0.4
+info:
+  title: Task Management API
+  version: 1.0.0
+  description: |
+    This API provides endpoints for managing users, teams, projects, and tasks.
+  contact:
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: /api
+paths:
+  /login:
+    post:
+      summary: User login
+      description: Authenticate a user and return a JWT token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+        '400':
+          description: Bad request (missing fields)
+        '401':
+          description: Unauthorized (invalid credentials)
+  /users:
+    post:
+      summary: Create a new user
+      description: Create a new user with the provided details.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                role:
+                  type: string
+              required:
+                - username
+                - email
+                - password
+                - role
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                  username:
+                    type: string
+                  email:
+                    type: string
+                  role:
+                    type: string
+        '400':
+          description: Bad request (duplicate email or username)
+  /users/{user_id}:
+    get:
+      summary: Get user details
+      description: Retrieve details of a specific user.
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                  username:
+                    type: string
+                  email:
+                    type: string
+                  role:
+                    type: string
+        '404':
+          description: User not found
+    put:
+      summary: Update user details
+      description: Update details of a specific user.
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                role:
+                  type: string
+      responses:
+        '200':
+          description: User updated successfully
+        '400':
+          description: Bad request (duplicate email or username)
+        '404':
+          description: User not found
+    delete:
+      summary: Delete a user
+      description: Delete a specific user.
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User deleted successfully
+        '404':
+          description: User not found
+  /teams:
+    post:
+      summary: Create a new team
+      description: Create a new team with the provided details.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                lead_id:
+                  type: string
+                  format: uuid
+              required:
+                - name
+                - lead_id
+      responses:
+        '201':
+          description: Team created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team_id:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  lead_id:
+                    type: string
+                    format: uuid
+        '400':
+          description: Bad request (invalid lead_id)
+  /teams/{team_id}:
+    get:
+      summary: Get team details
+      description: Retrieve details of a specific team.
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Team details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team_id:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  lead_id:
+                    type: string
+                    format: uuid
+        '404':
+          description: Team not found
+    put:
+      summary: Update team details
+      description: Update details of a specific team.
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                lead_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Team updated successfully
+        '400':
+          description: Bad request (invalid lead_id)
+        '404':
+          description: Team not found
+    delete:
+      summary: Delete a team
+      description: Delete a specific team.
+      parameters:
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Team deleted successfully
+        '404':
+          description: Team not found
+  /projects:
+    post:
+      summary: Create a new project
+      description: Create a new project with the provided details.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                team_id:
+                  type: string
+                  format: uuid
+                category_id:
+                  type: string
+                  format: uuid
+              required:
+                - title
+                - team_id
+                - category_id
+      responses:
+        '201':
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project_id:
+                    type: string
+                    format: uuid
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  team_id:
+                    type: string
+                    format: uuid
+                  category_id:
+                    type: string
+                    format: uuid
+        '400':
+          description: Bad request (invalid team_id or category_id)
+  /projects/{project_id}:
+    get:
+      summary: Get project details
+      description: Retrieve details of a specific project.
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Project details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project_id:
+                    type: string
+                    format: uuid
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  team_id:
+                    type: string
+                    format: uuid
+                  category_id:
+                    type: string
+                    format: uuid
+        '404':
+          description: Project not found
+    put:
+      summary: Update project details
+      description: Update details of a specific project.
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                team_id:
+                  type: string
+                  format: uuid
+                category_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Project updated successfully
+        '400':
+          description: Bad request (invalid team_id or category_id)
+        '404':
+          description: Project not found
+    delete:
+      summary: Delete a project
+      description: Delete a specific project.
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Project deleted successfully
+        '404':
+          description: Project not found
+  /tasks:
+    post:
+      summary: Create a new task
+      description: Create a new task with the provided details.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                project_id:
+                  type: string
+                  format: uuid
+                assignee_id:
+                  type: string
+                  format: uuid
+                status:
+                  type: string
+                  enum: [pending, in_progress, completed]
+                priority:
+                  type: integer
+                  minimum: 1
+                  maximum: 3
+              required:
+                - title
+                - project_id
+                - assignee_id
+                - status
+                - priority
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task_id:
+                    type: string
+                    format: uuid
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  project_id:
+                    type: string
+                    format: uuid
+                  assignee_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                  priority:
+                    type: integer
+        '400':
+          description: Bad request (invalid project_id or assignee_id)
+  /tasks/{task_id}:
+    get:
+      summary: Get task details
+      description: Retrieve details of a specific task.
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task_id:
+                    type: string
+                    format: uuid
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  project_id:
+                    type: string
+                    format: uuid
+                  assignee_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                  priority:
+                    type: integer
+        '404':
+          description: Task not found
+    put:
+      summary: Update task details
+      description: Update details of a specific task.
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                status:
+                  type: string
+                  enum: [pending, in_progress, completed]
+                priority:
+                  type: integer
+                  minimum: 1
+                  maximum: 3
+      responses:
+        '200':
+          description: Task updated successfully
+        '400':
+          description: Bad request (invalid status or priority)
+        '404':
+          description: Task not found
+    delete:
+      summary: Delete a task
+      description: Delete a specific task.
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Task deleted successfully
+        '404':
+          description: Task not found
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+      required:
+        - user_id
+        - username
+        - email
+        - role
+    Team:
+      type: object
+      properties:
+        team_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        lead_id:
+          type: string
+          format: uuid
+      required:
+        - team_id
+        - name
+        - lead_id
+    Project:
+      type: object
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        team_id:
+          type: string
+          format: uuid
+        category_id:
+          type: string
+          format: uuid
+      required:
+        - project_id
+        - title
+        - team_id
+        - category_id
+    Task:
+      type: object
+      properties:
+        task_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        project_id:
+          type: string
+          format: uuid
+        assignee_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, in_progress, completed]
+        priority:
+          type: integer
+          minimum: 1
+          maximum: 3
+      required:
+        - task_id
+        - title
+        - project_id
+        - assignee_id
+        - status
+        - priority

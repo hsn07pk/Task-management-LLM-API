@@ -79,6 +79,32 @@ class TeamService:
             db.session.rollback()
             print(traceback.format_exc())
             return {"error": "Internal server error", "message": str(e)}, 500
+        
+    @staticmethod
+    def get_all_teams():
+        """
+        Retrieves all teams in the database.
+        
+        :return: Tuple of (teams_list, status_code) or (error_dict, status_code)
+        """
+        try:
+            # Get all teams
+            teams = Team.query.all()
+            
+            # Use the to_dict() method already defined in the Team model
+            teams_data = [team.to_dict() for team in teams]
+            
+            # Check if any serialization errors occurred
+            for team_data in teams_data:
+                if "error" in team_data:
+                    return {"error": "Failed to serialize one or more teams"}, 500
+                    
+            return {"teams": teams_data}, 200
+
+        except Exception as e:
+            print(traceback.format_exc())
+            return {"error": "Failed to retrieve teams", "details": str(e)}, 500
+
     
     @staticmethod
     def get_team(user_id, team_id):

@@ -610,6 +610,7 @@ paths:
           schema:
             type: string
             format: uuid
+          example: "xyz789-4567-890a-bcdef1234567"
       requestBody:
         required: true
         content:
@@ -665,6 +666,7 @@ paths:
           schema:
             type: string
             format: uuid
+          example: "xyz789-4567-890a-bcdef1234567"
       responses:
         '200':
           description: List of team members
@@ -713,12 +715,14 @@ paths:
           schema:
             type: string
             format: uuid
+          example: "xyz789-4567-890a-bcdef1234567"
         - name: user_id
           in: path
           required: true
           schema:
             type: string
             format: uuid
+          example: "abc123-4567-890a-bcdef1234567"
       requestBody:
         required: true
         content:
@@ -776,12 +780,14 @@ paths:
           schema:
             type: string
             format: uuid
+          example: "xyz789-4567-890a-bcdef1234567"
         - name: user_id
           in: path
           required: true
           schema:
             type: string
             format: uuid
+          example: "abc123-4567-890a-bcdef1234567"
       responses:
         '200':
           description: Member removed successfully

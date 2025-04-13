@@ -341,3 +341,36 @@ coverage report -m
 ```bash
  coverage html
 ```
+
+
+```mermaid
+stateDiagram-v2
+    [*] --> Users: GET /users
+    Users --> User: GET /users/{id}
+    User --> User: PUT /users/{id}
+    User --> [*]: DELETE /users/{id}
+    
+    [*] --> Teams: GET /teams
+    Teams --> Team: GET /teams/{id}
+    Teams --> Teams: POST /teams
+    Team --> Team: PUT /teams/{id}
+    Team --> [*]: DELETE /teams/{id}
+    Team --> TeamMembers: GET /teams/{id}/members
+    TeamMembers --> TeamMembers: POST /teams/{id}/members
+    TeamMembers --> TeamMember: GET /teams/{id}/members/{user_id}
+    TeamMember --> TeamMember: PUT /teams/{id}/members/{user_id}
+    TeamMember --> [*]: DELETE /teams/{id}/members/{user_id}
+    
+    [*] --> Projects: GET /projects
+    Projects --> Project: GET /projects/{id}
+    Projects --> Projects: POST /projects
+    Project --> Project: PUT /projects/{id}
+    Project --> [*]: DELETE /projects/{id}
+    Project --> Tasks: GET /tasks?project_id={id}
+    
+    [*] --> Tasks: GET /tasks
+    Tasks --> Task: GET /tasks/{id}
+    Tasks --> Tasks: POST /tasks
+    Task --> Task: PUT /tasks/{id}
+    Task --> [*]: DELETE /tasks/{id}
+```

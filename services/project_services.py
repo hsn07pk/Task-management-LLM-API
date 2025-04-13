@@ -1,8 +1,9 @@
 from uuid import UUID
 
 from sqlalchemy import text
-from models import Project, Team, db
 from sqlalchemy.exc import IntegrityError
+
+from models import Project, Team, db
 
 
 class ProjectService:
@@ -82,7 +83,6 @@ class ProjectService:
         except Exception as e:
             db.session.rollback()
             raise Exception(f"Error deleting project: {str(e)}")
-            
 
     @staticmethod
     def fetch_all_projects():
@@ -95,6 +95,3 @@ class ProjectService:
         except Exception as e:
             db.session.rollback()
             raise Exception(f"Error retrieving projects: {str(e)}")
-
-        
-

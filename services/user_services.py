@@ -1,7 +1,6 @@
 from flask import Blueprint, jsonify
 from werkzeug.security import generate_password_hash
 
-from extentions.extensions import cache
 from models import User, db, get_all_users
 
 user_bp = Blueprint("user_routes", __name__)
@@ -41,17 +40,16 @@ def internal_error(error):
     return jsonify({"error": "Internal Server Error", "message": str(error)}), 500
 
 
-
 class UserService:
     """
     Service class to encapsulate user operations.
     """
-    
+
     @staticmethod
     def create_user(data):
         """
         Create a new user in the system.
-        
+
         :param data: User data dictionary containing username, email, password, and optional role
         :return: Tuple of (user_dict, status_code) or (error_dict, status_code)
         """
@@ -77,18 +75,18 @@ class UserService:
         except KeyError as e:
             db.session.rollback()
             return {
-                "error": "Missing required field", 
-                "message": f"Field {str(e)} is required"
+                "error": "Missing required field",
+                "message": f"Field {str(e)} is required",
             }, 400
         except Exception as e:
             db.session.rollback()
             return {"error": "Internal server error", "message": str(e)}, 500
-    
+
     @staticmethod
     def get_user(user_id):
         """
         Get a user by their ID.
-        
+
         :param user_id: UUID of the user to retrieve
         :return: Tuple of (user_dict, status_code) or (error_dict, status_code)
         """
@@ -99,12 +97,12 @@ class UserService:
             return user.to_dict(), 200
         except Exception as e:
             return {"error": "Internal server error", "message": str(e)}, 500
-    
+
     @staticmethod
     def update_user(user_id, current_user_id, data):
         """
         Update a user's details.
-        
+
         :param user_id: UUID of the user to update
         :param current_user_id: UUID of the current logged-in user
         :param data: Dictionary with updated user data
@@ -147,12 +145,12 @@ class UserService:
         except Exception as e:
             db.session.rollback()
             return {"error": "Internal server error", "message": str(e)}, 500
-    
+
     @staticmethod
     def delete_user(user_id, current_user_id):
         """
         Delete a user from the system.
-        
+
         :param user_id: UUID of the user to delete
         :param current_user_id: UUID of the current logged-in user
         :return: Tuple of (message_dict, status_code) or (error_dict, status_code)
@@ -177,12 +175,12 @@ class UserService:
         except Exception as e:
             db.session.rollback()
             return {"error": "Internal server error", "message": str(e)}, 500
-    
+
     @staticmethod
     def get_all_users():
         """
         Fetch all users from the database.
-        
+
         :return: Tuple of (users_list, status_code) or (error_dict, status_code)
         """
         try:

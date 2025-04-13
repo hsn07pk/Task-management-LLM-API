@@ -1,14 +1,12 @@
-from uuid import UUID
-
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from extentions.extensions import cache
-from models import User, Project, db
+from models import User
+from schemas.schemas import PROJECT_SCHEMA, PROJECT_UPDATE_SCHEMA
 from services.project_services import ProjectService
 from utils.error_handlers import handle_error, handle_exception
 from validators.validators import validate_json
-from schemas.schemas import PROJECT_SCHEMA, PROJECT_UPDATE_SCHEMA
 
 # Define the Blueprint
 project_bp = Blueprint("project_routes", __name__, url_prefix="/projects")
@@ -27,7 +25,7 @@ def create_project():
 
         data = request.get_json()
         new_project = ProjectService.create_project(data)
-        
+
         cache_key = f"projects_{current_user_id}"
         cache.delete(cache_key)
         return jsonify(new_project.to_dict()), 201
@@ -40,7 +38,10 @@ def create_project():
 
 @project_bp.route("/<uuid:project_id>", methods=["GET"])
 @jwt_required()
-@cache.cached(timeout=300, key_prefix=lambda: f"project_{get_jwt_identity()}_{request.view_args['project_id']}")
+@cache.cached(
+    timeout=300,
+    key_prefix=lambda: f"project_{get_jwt_identity()}_{request.view_args['project_id']}",
+)
 def get_project(project_id):
     """Retrieves a specific project by ID."""
     try:
@@ -102,7 +103,7 @@ def delete_project(project_id):
             return handle_error("Project not found", 404)
 
         ProjectService.delete_project(project)
-        
+
         cache_key = f"projects_{current_user_id}"
         cache.delete(cache_key)
 

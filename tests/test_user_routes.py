@@ -1,6 +1,6 @@
 import json
-from linecache import cache
 import uuid
+from linecache import cache
 
 import pytest
 from sqlalchemy import text

@@ -1,11 +1,7 @@
-import traceback
-from uuid import UUID
-
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from extentions.extensions import cache
-from models import Team, TeamMembership, User, db
 from schemas.schemas import TEAM_MEMBERSHIP_SCHEMA, TEAM_SCHEMA, TEAM_UPDATE_SCHEMA
 from services.team_services import TeamService
 from validators.validators import validate_json
@@ -14,11 +10,9 @@ from validators.validators import validate_json
 team_bp = Blueprint("team_routes", __name__, url_prefix="/teams")
 
 
-
-
 @team_bp.route("/", methods=["GET"])
 @jwt_required()
-@cache.cached(timeout=200, key_prefix=lambda: f"team_all_{get_jwt_identity()}") 
+@cache.cached(timeout=200, key_prefix=lambda: f"team_all_{get_jwt_identity()}")
 def get_all_teams():
     """
     Retrieves all teams the authenticated user is a member of.
@@ -35,7 +29,6 @@ def get_all_teams():
 @jwt_required()
 @validate_json(TEAM_SCHEMA)
 def create_team():
-    
     """
     Creates a new team. Only authorized users can create a team.
 
@@ -58,7 +51,9 @@ def create_team():
 
 @team_bp.route("/<uuid:team_id>", methods=["GET"])
 @jwt_required()
-@cache.cached(timeout=300, key_prefix=lambda: f"team_{get_jwt_identity()}_{request.view_args['team_id']}")
+@cache.cached(
+    timeout=300, key_prefix=lambda: f"team_{get_jwt_identity()}_{request.view_args['team_id']}"
+)
 def get_team(team_id):
     """
     Retrieves details of a specific team by its ID.
@@ -103,11 +98,11 @@ def update_team(team_id):
     user_id = get_jwt_identity()
     data = request.get_json()
     result, status_code = TeamService.update_team(user_id, team_id, data)
-    
+
     # Invalidate the cache for this team
     cache_key = f"team_{user_id}_{team_id}"
     cache.delete(cache_key)
-    
+
     return jsonify(result), status_code
 
 
@@ -155,11 +150,11 @@ def add_team_member(team_id):
     current_user_id = get_jwt_identity()
     data = request.get_json()
     result, status_code = TeamService.add_team_member(current_user_id, team_id, data)
-    
+
     # Invalidate the cache for this team
     cache_key = f"team_member_{current_user_id}_{team_id}"
     cache.delete(cache_key)
-    
+
     return jsonify(result), status_code
 
 
@@ -181,19 +176,16 @@ def update_team_member(team_id, user_id):
         - HTTP Status Code: 200 (OK).
         - HTTP Status Code: 404 (Not Found) if the membership does not exist.
     """
-    
 
-    
     current_user_id = get_jwt_identity()
     data = request.get_json()
     result, status_code = TeamService.update_team_member(current_user_id, team_id, user_id, data)
-    
+
     # Invalidate the cache for this team
     current_user_id = get_jwt_identity()
     cache_key = f"team_member_{current_user_id}_{team_id}"
     cache.delete(cache_key)
-    
-    
+
     return jsonify(result), status_code
 
 
@@ -219,7 +211,10 @@ def remove_team_member(team_id, user_id):
 
 @team_bp.route("/<uuid:team_id>/members", methods=["GET"])
 @jwt_required()
-@cache.cached(timeout=300, key_prefix=lambda: f"team_member_{get_jwt_identity()}_{request.view_args['team_id']}")
+@cache.cached(
+    timeout=300,
+    key_prefix=lambda: f"team_member_{get_jwt_identity()}_{request.view_args['team_id']}",
+)
 def get_team_members(team_id):
     """
     Retrieves all members of a specific team.

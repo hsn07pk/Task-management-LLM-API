@@ -11,14 +11,31 @@ from services.team_services import TeamService
 from validators.validators import validate_json
 
 # Blueprint for team-related routes
-team_bp = Blueprint("team_routes", __name__)
+team_bp = Blueprint("team_routes", __name__, url_prefix="/teams")
 
-# ------------------ ERROR HANDLERS ------------------
 
-@team_bp.route("/teams", methods=["POST"])
+
+
+@team_bp.route("/", methods=["GET"])
+@jwt_required()
+@cache.cached(timeout=200, key_prefix=lambda: f"team_all_{get_jwt_identity()}") 
+def get_all_teams():
+    """
+    Retrieves all teams the authenticated user is a member of.
+
+    Returns:
+        - List of teams with their basic info and the user's role.
+        - HTTP Status Code: 200 (OK) on success.
+    """
+    result, status_code = TeamService.get_all_teams()
+    return jsonify(result), status_code
+
+
+@team_bp.route("/", methods=["POST"])
 @jwt_required()
 @validate_json(TEAM_SCHEMA)
 def create_team():
+    
     """
     Creates a new team. Only authorized users can create a team.
 
@@ -34,10 +51,12 @@ def create_team():
     user_id = get_jwt_identity()
     data = request.get_json()
     result, status_code = TeamService.create_team(user_id, data)
+    cache_key = f"team_all_{user_id}"
+    cache.delete(cache_key)
     return jsonify(result), status_code
 
 
-@team_bp.route("/teams/<uuid:team_id>", methods=["GET"])
+@team_bp.route("/<uuid:team_id>", methods=["GET"])
 @jwt_required()
 @cache.cached(timeout=300, key_prefix=lambda: f"team_{get_jwt_identity()}_{request.view_args['team_id']}")
 def get_team(team_id):
@@ -54,10 +73,13 @@ def get_team(team_id):
     """
     user_id = get_jwt_identity()
     result, status_code = TeamService.get_team(user_id, team_id)
+    # Invalidate the cache for this team
+    cache_key = f"team_all_{user_id}_{team_id}"
+    cache.delete(cache_key)
     return jsonify(result), status_code
 
 
-@team_bp.route("/teams/<uuid:team_id>", methods=["PUT"])
+@team_bp.route("/<uuid:team_id>", methods=["PUT"])
 @jwt_required()
 @validate_json(TEAM_UPDATE_SCHEMA)
 def update_team(team_id):
@@ -89,7 +111,7 @@ def update_team(team_id):
     return jsonify(result), status_code
 
 
-@team_bp.route("/teams/<uuid:team_id>", methods=["DELETE"])
+@team_bp.route("/<uuid:team_id>", methods=["DELETE"])
 @jwt_required()
 def delete_team(team_id):
     """
@@ -111,7 +133,7 @@ def delete_team(team_id):
 # ------------------ TEAM MEMBERSHIP ROUTES ------------------
 
 
-@team_bp.route("/teams/<uuid:team_id>/members", methods=["POST"])
+@team_bp.route("/<uuid:team_id>/members", methods=["POST"])
 @jwt_required()
 @validate_json(TEAM_MEMBERSHIP_SCHEMA)
 def add_team_member(team_id):
@@ -141,7 +163,7 @@ def add_team_member(team_id):
     return jsonify(result), status_code
 
 
-@team_bp.route("/teams/<uuid:team_id>/members/<uuid:user_id>", methods=["PUT"])
+@team_bp.route("/<uuid:team_id>/members/<uuid:user_id>", methods=["PUT"])
 @jwt_required()
 @validate_json({"type": "object", "properties": {"role": {"type": "string"}}, "required": ["role"]})
 def update_team_member(team_id, user_id):
@@ -175,7 +197,7 @@ def update_team_member(team_id, user_id):
     return jsonify(result), status_code
 
 
-@team_bp.route("/teams/<uuid:team_id>/members/<uuid:user_id>", methods=["DELETE"])
+@team_bp.route("/<uuid:team_id>/members/<uuid:user_id>", methods=["DELETE"])
 @jwt_required()
 def remove_team_member(team_id, user_id):
     """
@@ -195,7 +217,7 @@ def remove_team_member(team_id, user_id):
     return jsonify(result), status_code
 
 
-@team_bp.route("/teams/<uuid:team_id>/members", methods=["GET"])
+@team_bp.route("/<uuid:team_id>/members", methods=["GET"])
 @jwt_required()
 @cache.cached(timeout=300, key_prefix=lambda: f"team_member_{get_jwt_identity()}_{request.view_args['team_id']}")
 def get_team_members(team_id):

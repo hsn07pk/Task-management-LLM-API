@@ -335,3 +335,9 @@ python code_quality.py --fix
 ```bash
 coverage report -m
 ```
+
+
+### Test Coverage HTML Report
+```bash
+ coverage html
+```

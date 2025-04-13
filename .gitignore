@@ -46,3 +46,7 @@ htmlcov/
 # Logs
 *.log
 logs/
+
+#reports
+reports/
+last_report.html

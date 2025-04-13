@@ -1,9 +1,10 @@
-
 from datetime import datetime
 from uuid import UUID
 
-from models import PriorityEnum, Project, StatusEnum, Task, User, db
 from sqlalchemy.exc import SQLAlchemyError
+
+from models import PriorityEnum, Project, StatusEnum, Task, User, db
+
 
 class TaskService:
     @staticmethod
@@ -11,7 +12,7 @@ class TaskService:
         try:
             created_by = updated_by = UUID(user_id)
             project_id = UUID(data["project_id"])
-            
+
             project = Project.query.get(project_id)
             if not project:
                 raise ValueError("Invalid project_id: Project not found")
@@ -29,12 +30,17 @@ class TaskService:
 
             status = data.get("status", StatusEnum.PENDING.value)
             if status not in [e.value for e in StatusEnum]:
-                raise ValueError(f"Invalid status value. Valid values are: {[e.value for e in StatusEnum]}")
+                raise ValueError(
+                    f"Invalid status value. Valid values are: {[e.value for e in StatusEnum]}"
+                )
 
             priority_value = data.get("priority", "LOW")
             if isinstance(priority_value, int):
                 if priority_value not in [p.value for p in PriorityEnum]:
-                    raise ValueError(f"Invalid priority value. Valid values are: {[e.name for e in PriorityEnum]}")
+                    raise ValueError(
+                        f"Invalid priority value. Valid values are: "
+                        f"{[e.name for e in PriorityEnum]}"
+                    )
                 priority = priority_value
             else:
                 priority_str = str(priority_value).upper()
@@ -82,14 +88,18 @@ class TaskService:
             priority_value = data["priority"]
             if isinstance(priority_value, int):
                 if priority_value not in [p.value for p in PriorityEnum]:
-                    raise ValueError(f"Invalid priority value. Valid values are: {[e.name for e in PriorityEnum]}")
+                    raise ValueError(
+                        f"Invalid priority value. Valid values are: {[e.name for e in PriorityEnum]}"
+                    )
                 task.priority = priority_value
             else:
                 priority_str = str(priority_value).upper()
                 task.priority = PriorityEnum[priority_str].value
         if "status" in data:
             if data["status"] not in [e.value for e in StatusEnum]:
-                raise ValueError(f"Invalid status value. Valid values are: {[e.value for e in StatusEnum]}")
+                raise ValueError(
+                    f"Invalid status value. Valid values are: " f"{[e.value for e in StatusEnum]}"
+                )
             task.status = data["status"]
         if "deadline" in data and data["deadline"]:
             task.deadline = datetime.fromisoformat(data["deadline"].replace("Z", "+00:00"))
@@ -135,7 +145,9 @@ class TaskService:
 
         if "status" in filters:
             if filters["status"] not in [e.value for e in StatusEnum]:
-                raise ValueError(f"Invalid status value. Valid values are: {[e.value for e in StatusEnum]}")
+                raise ValueError(
+                    f"Invalid status value. Valid values are: {[e.value for e in StatusEnum]}"
+                )
             query = query.filter_by(status=filters["status"])
 
         tasks = query.all()

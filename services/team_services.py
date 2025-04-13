@@ -1,13 +1,9 @@
 import traceback
 from uuid import UUID
 
-from flask import Blueprint, jsonify, request
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask import Blueprint, jsonify
 
-from extentions.extensions import cache
 from models import Team, TeamMembership, User, db
-from schemas.schemas import TEAM_MEMBERSHIP_SCHEMA, TEAM_SCHEMA
-from validators.validators import validate_json
 
 # Blueprint for team-related routes
 team_bp = Blueprint("team_routes", __name__)
@@ -38,12 +34,12 @@ class TeamService:
     """
     Service class to encapsulate team operations.
     """
-    
+
     @staticmethod
     def create_team(user_id, data):
         """
         Creates a new team.
-        
+
         :param user_id: UUID of the authenticated user
         :param data: Team data dictionary
         :return: Tuple of (team_dict, status_code) or (error_dict, status_code)
@@ -79,38 +75,37 @@ class TeamService:
             db.session.rollback()
             print(traceback.format_exc())
             return {"error": "Internal server error", "message": str(e)}, 500
-        
+
     @staticmethod
     def get_all_teams():
         """
         Retrieves all teams in the database.
-        
+
         :return: Tuple of (teams_list, status_code) or (error_dict, status_code)
         """
         try:
             # Get all teams
             teams = Team.query.all()
-            
+
             # Use the to_dict() method already defined in the Team model
             teams_data = [team.to_dict() for team in teams]
-            
+
             # Check if any serialization errors occurred
             for team_data in teams_data:
                 if "error" in team_data:
                     return {"error": "Failed to serialize one or more teams"}, 500
-                    
+
             return {"teams": teams_data}, 200
 
         except Exception as e:
             print(traceback.format_exc())
             return {"error": "Failed to retrieve teams", "details": str(e)}, 500
 
-    
     @staticmethod
     def get_team(user_id, team_id):
         """
         Retrieves details of a specific team.
-        
+
         :param user_id: UUID of the authenticated user
         :param team_id: UUID of the team to retrieve
         :return: Tuple of (team_dict, status_code) or (error_dict, status_code)
@@ -127,12 +122,12 @@ class TeamService:
         except Exception as e:
             print(traceback.format_exc())
             return {"error": "Internal server error", "message": str(e)}, 500
-    
+
     @staticmethod
     def update_team(user_id, team_id, data):
         """
         Updates an existing team's details.
-        
+
         :param user_id: UUID of the authenticated user
         :param team_id: UUID of the team to update
         :param data: Dictionary with updated team data
@@ -173,12 +168,12 @@ class TeamService:
             db.session.rollback()
             print(traceback.format_exc())
             return {"error": "Internal server error", "message": str(e)}, 500
-    
+
     @staticmethod
     def delete_team(user_id, team_id):
         """
         Deletes a team.
-        
+
         :param user_id: UUID of the authenticated user
         :param team_id: UUID of the team to delete
         :return: Tuple of (message_dict, status_code) or (error_dict, status_code)
@@ -199,12 +194,12 @@ class TeamService:
             db.session.rollback()
             print(traceback.format_exc())
             return {"error": "Internal server error", "message": str(e)}, 500
-    
+
     @staticmethod
     def add_team_member(current_user_id, team_id, data):
         """
         Adds a user to a team with a specified role.
-        
+
         :param current_user_id: UUID of the authenticated user
         :param team_id: UUID of the team
         :param data: Dictionary with user_id and role
@@ -239,7 +234,9 @@ class TeamService:
                 return {"error": "User not found"}, 404
 
             # Check if the user is already a member of the team
-            existing_member = TeamMembership.query.filter_by(team_id=team_id, user_id=user_id).first()
+            existing_member = TeamMembership.query.filter_by(
+                team_id=team_id, user_id=user_id
+            ).first()
             if existing_member:
                 return {"error": "User is already a member of this team"}, 400
 
@@ -252,12 +249,12 @@ class TeamService:
             db.session.rollback()
             print(traceback.format_exc())
             return {"error": "Internal server error", "message": str(e)}, 500
-    
+
     @staticmethod
     def update_team_member(current_user_id, team_id, user_id, data):
         """
         Updates the role of a member in a team.
-        
+
         :param current_user_id: UUID of the authenticated user
         :param team_id: UUID of the team
         :param user_id: UUID of the user whose role will be updated
@@ -296,12 +293,12 @@ class TeamService:
             db.session.rollback()
             print(traceback.format_exc())
             return {"error": "Internal server error", "message": str(e)}, 500
-    
+
     @staticmethod
     def remove_team_member(current_user_id, team_id, user_id):
         """
         Removes a user from a team.
-        
+
         :param current_user_id: UUID of the authenticated user
         :param team_id: UUID of the team
         :param user_id: UUID of the user to be removed
@@ -333,12 +330,12 @@ class TeamService:
             db.session.rollback()
             print(traceback.format_exc())
             return {"error": "Internal server error", "message": str(e)}, 500
-    
+
     @staticmethod
     def get_team_members(current_user_id, team_id):
         """
         Retrieves all members of a specific team.
-        
+
         :param current_user_id: UUID of the authenticated user
         :param team_id: UUID of the team
         :return: Tuple of (members_dict, status_code) or (error_dict, status_code)
@@ -365,4 +362,3 @@ class TeamService:
         except Exception as e:
             print(traceback.format_exc())
             return {"error": "Internal server error", "message": str(e)}, 500
-

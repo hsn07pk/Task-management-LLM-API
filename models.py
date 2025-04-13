@@ -126,6 +126,7 @@ class Category(db.Model):
     # Define a single relationship with back_populates to avoid conflicts
     projects = db.relationship("Project", back_populates="category", lazy=True)
 
+
 # Project Model
 class Project(db.Model):
     """
@@ -133,7 +134,7 @@ class Project(db.Model):
     deadline, and relationships with teams and categories.
     """
 
-    __tablename__: str = 'PROJECT'
+    __tablename__: str = "PROJECT"
 
     project_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = db.Column(db.String(255), nullable=False)
@@ -172,6 +173,7 @@ class Project(db.Model):
         except Exception as e:
             print(f"Error in to_dict: {str(e)}")
             return {"error": f"Error serializing project: {str(e)}"}
+
 
 # Priority Enum
 class PriorityEnum(int, Enum):
@@ -230,17 +232,18 @@ class Task(db.Model):
         updated_by=None,
     ):
         """
-        Constructor for creating a new Task.
+        Initialize a new Task instance.
+
         Args:
-            title (str): The title of the task.
-            description (str, optional): The description of the task.
-            priority (int, optional): The priority level of the task.
-            deadline (datetime, optional): The task's deadline.
-            status (str, optional): The current status of the task.
-            project_id (UUID, optional): The ID of the related project.
-            assignee_id (UUID, optional): The ID of the user assigned to the task.
-            created_by (UUID, optional): The ID of the user who created the task.
-            updated_by (UUID, optional): The ID of the user who last updated the task.
+            title: Task title
+            description: Task description
+            priority: Task priority
+            deadline: Task deadline
+            status: Task status
+            project_id: ID of the project this task belongs to
+            assignee_id: ID of the user assigned to this task
+            created_by: ID of the user who created this task
+            updated_by: ID of the user who last updated this task
         """
         self.title = title
         self.description = description
@@ -338,12 +341,12 @@ def create_user(username, email, password, role="member"):
         db.session.add(user)
         db.session.commit()
         return user
-    except IntegrityError:
+    except IntegrityError as exc:
         db.session.rollback()
-        raise ValueError("Username or email already exists")
+        raise ValueError("Username or email already exists") from exc
     except Exception as e:
         db.session.rollback()
-        raise Exception(f"Error creating user: {str(e)}")
+        raise RuntimeError(f"Error creating user: {str(e)}") from e
 
 
 def get_user_by_id(user_id):
@@ -388,12 +391,12 @@ def update_user(user_id, **kwargs):
 
         db.session.commit()
         return user
-    except IntegrityError:
+    except IntegrityError as exc:
         db.session.rollback()
-        raise ValueError("Update violates unique constraints (username or email)")
+        raise ValueError("Update violates unique constraints (username or email)") from exc
     except Exception as e:
         db.session.rollback()
-        raise Exception(f"Error updating user: {str(e)}")
+        raise RuntimeError(f"Error updating user: {str(e)}") from e
 
 
 def delete_user(user_id):
@@ -413,7 +416,7 @@ def delete_user(user_id):
         return None
     except Exception as e:
         db.session.rollback()
-        raise Exception(f"Error deleting user: {str(e)}")
+        raise RuntimeError(f"Error deleting user: {str(e)}") from e
 
 
 def get_all_users():
@@ -452,7 +455,7 @@ def create_team(name, description, lead_id):
         return team
     except Exception as e:
         db.session.rollback()
-        raise Exception(f"Error creating team: {str(e)}")
+        raise RuntimeError(f"Error creating team: {str(e)}") from e
 
 
 def assign_task(title, description, priority, project_id, assignee_id, created_by=None):
@@ -492,8 +495,8 @@ def assign_task(title, description, priority, project_id, assignee_id, created_b
             priority_value = int(priority)
             if priority_value not in [e.value for e in PriorityEnum]:
                 raise ValueError(f"Invalid priority value: {priority}")
-        except (ValueError, TypeError):
-            raise ValueError(f"Priority must be a valid integer: {priority}")
+        except (ValueError, TypeError) as exc:
+            raise ValueError(f"Priority must be a valid integer: {priority}") from exc
 
         task = Task(
             title=title,
@@ -508,7 +511,7 @@ def assign_task(title, description, priority, project_id, assignee_id, created_b
         return task
     except Exception as e:
         db.session.rollback()
-        raise Exception(f"Error assigning task: {str(e)}")
+        raise RuntimeError(f"Error assigning task: {str(e)}") from e
 
 
 def get_project_tasks(project_id):
@@ -523,8 +526,8 @@ def get_project_tasks(project_id):
         if not isinstance(project_id, uuid.UUID):
             try:
                 project_id = uuid.UUID(str(project_id))
-            except (ValueError, TypeError):
-                raise ValueError(f"Invalid project ID format: {project_id}")
+            except (ValueError, TypeError) as exc:
+                raise ValueError(f"Invalid project ID format: {project_id}") from exc
 
         # Verify project exists
         project = Project.query.get(project_id)
@@ -550,18 +553,24 @@ def create_task(
 ):
     """
     Create a new task.
+
     Args:
-        title (str): The title of the task.
-        description (str, optional): The description of the task.
-        priority (int, optional): The priority level of the task.
-        deadline (datetime, optional): The task's deadline.
-        status (str, optional): The current status of the task.
-        project_id (UUID, optional): The ID of the related project.
-        assignee_id (UUID, optional): The ID of the user assigned to the task.
-        created_by (UUID, optional): The ID of the user who created the task.
-        updated_by (UUID, optional): The ID of the user who last updated the task.
+        title: Task title
+        description: Task description
+        priority: Task priority (integer value from PriorityEnum)
+        deadline: Task deadline date (datetime)
+        status: Task status (string value from StatusEnum)
+        project_id: ID of the project
+        assignee_id: ID of the user assigned to this task
+        created_by: ID of the user who created this task
+        updated_by: ID of the user who last updated this task
+
     Returns:
-        Task: The created Task object.
+        Newly created Task instance
+
+    Raises:
+        ValueError: If validation fails
+        Exception: If database operation fails
     """
     try:
         # Validate title
@@ -573,8 +582,8 @@ def create_task(
             priority_value = int(priority)
             if priority_value not in [e.value for e in PriorityEnum]:
                 raise ValueError(f"Invalid priority value: {priority}")
-        except (ValueError, TypeError):
-            raise ValueError(f"Priority must be a valid integer: {priority}")
+        except (ValueError, TypeError) as exc:
+            raise ValueError(f"Priority must be a valid integer: {priority}") from exc
 
         # Validate status
         if status not in [e.value for e in StatusEnum]:
@@ -585,8 +594,8 @@ def create_task(
             if not isinstance(project_id, uuid.UUID):
                 try:
                     project_id = uuid.UUID(str(project_id))
-                except (ValueError, TypeError):
-                    raise ValueError(f"Invalid project ID format: {project_id}")
+                except (ValueError, TypeError) as exc:
+                    raise ValueError(f"Invalid project ID format: {project_id}") from exc
 
             project = Project.query.get(project_id)
             if not project:
@@ -597,8 +606,8 @@ def create_task(
             if not isinstance(assignee_id, uuid.UUID):
                 try:
                     assignee_id = uuid.UUID(str(assignee_id))
-                except (ValueError, TypeError):
-                    raise ValueError(f"Invalid assignee ID format: {assignee_id}")
+                except (ValueError, TypeError) as exc:
+                    raise ValueError(f"Invalid assignee ID format: {assignee_id}") from exc
 
             assignee = get_user_by_id(assignee_id)
             if not assignee:
@@ -609,8 +618,8 @@ def create_task(
             if not isinstance(created_by, uuid.UUID):
                 try:
                     created_by = uuid.UUID(str(created_by))
-                except (ValueError, TypeError):
-                    raise ValueError(f"Invalid creator ID format: {created_by}")
+                except (ValueError, TypeError) as exc:
+                    raise ValueError(f"Invalid creator ID format: {created_by}") from exc
 
             creator = get_user_by_id(created_by)
             if not creator:
@@ -621,8 +630,8 @@ def create_task(
             if not isinstance(updated_by, uuid.UUID):
                 try:
                     updated_by = uuid.UUID(str(updated_by))
-                except (ValueError, TypeError):
-                    raise ValueError(f"Invalid updater ID format: {updated_by}")
+                except (ValueError, TypeError) as exc:
+                    raise ValueError(f"Invalid updater ID format: {updated_by}") from exc
 
             updater = get_user_by_id(updated_by)
             if not updater:
@@ -644,7 +653,7 @@ def create_task(
         return task
     except Exception as e:
         db.session.rollback()
-        raise Exception(f"Error creating task: {str(e)}")
+        raise RuntimeError(f"Error creating task: {str(e)}") from e
 
 
 def get_task(task_id):
@@ -659,8 +668,8 @@ def get_task(task_id):
         if not isinstance(task_id, uuid.UUID):
             try:
                 task_id = uuid.UUID(str(task_id))
-            except (ValueError, TypeError):
-                return None
+            except (ValueError, TypeError) as exc:
+                raise ValueError(f"Invalid task ID format: {task_id}") from exc
         return Task.query.get(task_id)
     except Exception as e:
         print(f"Error retrieving task: {str(e)}")
@@ -679,8 +688,8 @@ def delete_task(task_id):
         if not isinstance(task_id, uuid.UUID):
             try:
                 task_id = uuid.UUID(str(task_id))
-            except (ValueError, TypeError):
-                raise ValueError(f"Invalid task ID format: {task_id}")
+            except (ValueError, TypeError) as exc:
+                raise ValueError(f"Invalid task ID format: {task_id}") from exc
 
         task = get_task(task_id)
         if task:

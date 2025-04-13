@@ -39,8 +39,10 @@ def create_app():
         hours=1
     )  # Token expiration time set to 1 hour
     app.config["CACHE_DEFAULT_TIMEOUT"] = 300  # Cache expiry time set to 5 minutes (300 seconds)
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost:5432/taskmanagement'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config["SQLALCHEMY_DATABASE_URI"] = (
+        "postgresql://postgres:postgres@localhost:5432/taskmanagement"
+    )
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     # Initialize JWT and Cache
     JWTManager(app)  # Initialize JWT without storing the instance
@@ -55,7 +57,20 @@ def create_app():
     app.register_blueprint(project_bp)
     app.register_blueprint(user_bp)
 
-    # ---------------- AUTHENTICATION ROUTES ----------------
+    # Register authentication routes
+    register_auth_routes(app)
+
+    # Register error handlers
+    register_error_handlers(app)
+
+    # Register test route
+    register_test_route(app)
+
+    return app
+
+
+def register_auth_routes(app):
+    """Register authentication-related routes with the Flask app."""
 
     @app.route("/login", methods=["POST"])
     def login():
@@ -102,7 +117,9 @@ def create_app():
         except Exception as e:
             return jsonify({"error": "Internal server error", "message": str(e)}), 500
 
-    # ---------------- ERROR HANDLERS ----------------
+
+def register_error_handlers(app):
+    """Register error handlers with the Flask app."""
 
     @app.errorhandler(400)
     def bad_request(error):
@@ -134,7 +151,9 @@ def create_app():
         """
         return jsonify({"error": "Internal Server Error", "message": str(error)}), 500
 
-    # ---------------- TEST ROUTE ----------------
+
+def register_test_route(app):
+    """Register the test route with the Flask app."""
 
     @app.route("/test", methods=["GET"])
     @jwt_required()  # Ensure the user is authenticated
@@ -169,8 +188,6 @@ def create_app():
 
         except Exception as e:
             return jsonify({"error": "Internal server error", "message": str(e)}), 500
-
-    return app
 
 
 if __name__ == "__main__":

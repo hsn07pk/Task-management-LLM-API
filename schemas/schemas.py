@@ -97,4 +97,3 @@ USER_UPDATE_SCHEMA = {
     },
     # No "required" field for updates
 }
-

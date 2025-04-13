@@ -1,17 +1,15 @@
-from uuid import UUID
-
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
-from werkzeug.security import generate_password_hash
 
 from extentions.extensions import cache
-from models import User, db, get_all_users
 from schemas.schemas import USER_SCHEMA, USER_UPDATE_SCHEMA
 from services.user_services import UserService
 from validators.validators import validate_json
 
+user_bp = Blueprint(
+    "user_routes", __name__, url_prefix="/users"
+)  # prefix user so that we don't need to add user again and again
 
-user_bp = Blueprint("user_routes", __name__, url_prefix="/users") # prefix user so that we don't need to add user again and again
 
 @user_bp.route("/", methods=["POST"])
 @validate_json(USER_SCHEMA)
@@ -35,7 +33,9 @@ def create_user():
 
 @user_bp.route("/<uuid:user_id>", methods=["GET"])
 @jwt_required()
-@cache.cached(timeout=300, key_prefix=lambda: f"user_{get_jwt_identity()}_{request.view_args['user_id']}")
+@cache.cached(
+    timeout=300, key_prefix=lambda: f"user_{get_jwt_identity()}_{request.view_args['user_id']}"
+)
 def get_user(user_id):
     """
     Get the details of a user by their ID.
@@ -100,7 +100,7 @@ def delete_user(user_id):
 
 
 @user_bp.route("/", methods=["GET"])
-@cache.cached(timeout=200, key_prefix="all_users")  
+@cache.cached(timeout=200, key_prefix="all_users")
 def fetch_users():
     """
     Fetch all users from the database with caching enabled.

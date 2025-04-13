@@ -2,23 +2,29 @@
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
-from services.task_service import TaskService
+
+from extentions.extensions import cache
 from schemas.schemas import TASK_SCHEMA
+from services.task_service import TaskService
 from validators.validators import validate_json
 
 task_bp = Blueprint("task_routes", __name__, url_prefix="/tasks")
+
 
 @task_bp.errorhandler(400)
 def bad_request(error):
     return jsonify({"error": "Bad Request", "message": str(error)}), 400
 
+
 @task_bp.errorhandler(404)
 def not_found(error):
     return jsonify({"error": "Not Found", "message": str(error)}), 404
 
+
 @task_bp.errorhandler(500)
 def internal_error(error):
     return jsonify({"error": "Internal Server Error", "message": str(error)}), 500
+
 
 @task_bp.route("/", methods=["POST"])
 @jwt_required()
@@ -37,6 +43,7 @@ def create_task():
     except Exception as e:
         return jsonify({"error": "Internal server error", "message": str(e)}), 500
 
+
 @task_bp.route("/<uuid:task_id>", methods=["GET", "PUT", "DELETE"])
 @jwt_required()
 def task_operations(task_id):
@@ -49,11 +56,11 @@ def task_operations(task_id):
             task = TaskService.get_task(task_id)
             return jsonify(task), 200
 
-        elif request.method == "DELETE":
+        if request.method == "DELETE":
             TaskService.delete_task(task_id)
             return jsonify({"message": "Task deleted successfully"}), 200
 
-        elif request.method == "PUT":
+        if request.method == "PUT":
             data = request.get_json()
             if not data:
                 return jsonify({"error": "No data provided"}), 400
@@ -66,6 +73,7 @@ def task_operations(task_id):
     except Exception as e:
         return jsonify({"error": "Internal server error", "message": str(e)}), 500
 
+
 @task_bp.route("/", methods=["GET"])
 @jwt_required()
 def get_tasks():
@@ -77,7 +85,7 @@ def get_tasks():
         filters = {
             "project_id": request.args.get("project_id"),
             "assignee_id": request.args.get("assignee_id"),
-            "status": request.args.get("status")
+            "status": request.args.get("status"),
         }
         filters = {k: v for k, v in filters.items() if v is not None}
 

@@ -1,9 +1,10 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, url_for
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from extentions.extensions import cache
 from schemas.schemas import USER_SCHEMA, USER_UPDATE_SCHEMA
 from services.user_services import UserService
+from utils.hypermedia.user_hypermedia import generate_user_links
 from validators.validators import validate_json
 
 user_bp = Blueprint(
@@ -28,6 +29,8 @@ def create_user():
     """
     data = request.get_json()
     result, status_code = UserService.create_user(data)
+    if status_code == 201 and "id" in result:
+        result["_links"] = generate_user_links(user_id=result["id"])
     return jsonify(result), status_code
 
 
@@ -49,6 +52,9 @@ def get_user(user_id):
     :status 404: User not found.
     """
     result, status_code = UserService.get_user(user_id)
+    if status_code == 200:
+        result["_links"] = generate_user_links(user_id=user_id)
+
     return jsonify(result), status_code
 
 
@@ -76,6 +82,8 @@ def update_user(user_id):
     result, status_code = UserService.update_user(user_id, current_user_id, data)
     cache_key = f"user_{current_user_id}_{user_id}"
     cache.delete(cache_key)
+    if status_code == 200:
+        result["_links"] = generate_user_links(user_id=user_id)
     return jsonify(result), status_code
 
 
@@ -96,6 +104,22 @@ def delete_user(user_id):
     """
     current_user_id = get_jwt_identity()
     result, status_code = UserService.delete_user(user_id, current_user_id)
+
+    if status_code == 200:
+        result["_links"] = {
+            "collection": {
+                "href": url_for("user_routes.fetch_users", _external=True),
+                "rel": "collection",
+                "method": "GET",
+            },
+            "create": {
+                "href": url_for("user_routes.create_user", _external=True),
+                "rel": "create",
+                "method": "POST",
+                "schema": "/schemas/user.json",
+            },
+        }
+
     return jsonify(result), status_code
 
 
@@ -106,7 +130,25 @@ def fetch_users():
     Fetch all users from the database with caching enabled.
 
     Returns:
-        JSON response containing a list of all users.
+        JSON response containing a list of all users and hypermedia controls.
     """
     result, status_code = UserService.get_all_users()
-    return jsonify(result), status_code
+
+    response = {
+        "users": result,
+        "_links": {
+            "self": {
+                "href": url_for("user_routes.fetch_users", _external=True),
+                "rel": "self",
+                "method": "GET",
+            },
+            "create": {
+                "href": url_for("user_routes.create_user", _external=True),
+                "rel": "create",
+                "method": "POST",
+                "schema": "/schemas/user.json",
+            },
+        },
+    }
+
+    return jsonify(response), status_code

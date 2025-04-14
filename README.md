@@ -330,3 +330,63 @@ python code_quality.py --fix
 ### Code Quality Failures
 - Review the generated reports for detailed feedback.
 - Run python code_quality.py --fix to automatically correct formatting issues.
+
+### Test Coverage 
+```bash
+coverage report -m
+```
+
+
+### Test Coverage HTML Report
+```bash
+ coverage html
+```
+
+
+### Hypermedia Design
+
+```mermaid
+stateDiagram-v2
+    [*] --> Users: GET /users
+    Users --> User: GET /users/{id}
+    User --> UpdateUser: PUT /users/{id}
+    UpdateUser --> User
+    User --> [*]: DELETE /users/{id}
+    
+    [*] --> Teams: GET /teams
+    Teams --> Team: GET /teams/{id}
+    Teams --> CreateTeam: POST /teams
+    CreateTeam --> Team
+    Team --> UpdateTeam: PUT /teams/{id}
+    UpdateTeam --> Team
+    Team --> [*]: DELETE /teams/{id}
+    Team --> TeamMembers: GET /teams/{id}/members
+    TeamMembers --> CreateTeamMember: POST /teams/{id}/members
+    CreateTeamMember --> TeamMember
+    TeamMember --> UpdateTeamMember: PUT /teams/{id}/members/{user_id}
+    UpdateTeamMember --> TeamMember
+    TeamMember --> [*]: DELETE /teams/{id}/members/{user_id}
+    
+    [*] --> Projects: GET /projects
+    Projects --> Project: GET /projects/{id}
+    Projects --> CreateProject: POST /projects
+    CreateProject --> Project
+    Project --> UpdateProject: PUT /projects/{id}
+    UpdateProject --> Project
+    Project --> [*]: DELETE /projects/{id}
+    Project --> Tasks: GET /tasks?project_id={id}
+    Tasks --> Task: GET /tasks/{id}
+    
+    [*] --> Tasks: GET /tasks
+    Tasks --> Task: GET /tasks/{id}
+    Tasks --> CreateTask: POST /tasks
+    CreateTask --> Task
+    Task --> UpdateTask: PUT /tasks/{id}
+    UpdateTask --> Task
+    Task --> [*]: DELETE /tasks/{id}
+    
+    %% Optional connections to show better connectedness
+    User --> Teams: GET /users/{id}/teams
+    Task --> Project: GET /projects/{id}
+
+```

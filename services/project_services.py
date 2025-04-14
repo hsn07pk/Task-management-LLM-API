@@ -1,6 +1,5 @@
 from uuid import UUID
 
-from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 from models import Project, Team, db

@@ -1,10 +1,10 @@
 import json
-import uuid
-from linecache import cache
+# import uuid
+# from linecache import cache
 
 import pytest
 from sqlalchemy import text
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import generate_password_hash
 
 from app import create_app
 from models import User, db

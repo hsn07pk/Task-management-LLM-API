@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, url_for
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from extentions.extensions import cache
@@ -10,6 +10,37 @@ from validators.validators import validate_json
 
 # Define the Blueprint
 project_bp = Blueprint("project_routes", __name__, url_prefix="/projects")
+
+
+def add_hypermedia_links(project_dict):
+    """
+    Add hypermedia links to a project resource.
+    
+    Args:
+        project_dict (dict): The project dictionary to add links to
+        
+    Returns:
+        dict: The project with added _links property
+    """
+    if not project_dict or not isinstance(project_dict, dict) or "id" not in project_dict:
+        return project_dict
+    
+    # Create a deep copy of the project to avoid modifying the original
+    project_with_links = dict(project_dict)
+    
+    # Convert project_id to string to ensure URL generation works correctly
+    project_id = str(project_dict["id"])
+    
+    # Add links for the project resource
+    project_with_links["_links"] = {
+        "self": {"href": url_for("project_routes.get_project", project_id=project_id, _external=True)},
+        "update": {"href": url_for("project_routes.update_project", project_id=project_id, _external=True)},
+        "delete": {"href": url_for("project_routes.delete_project", project_id=project_id, _external=True)},
+        "collection": {"href": url_for("project_routes.get_all_projects", _external=True)},
+        "tasks": {"href": url_for("task_routes.get_tasks", project_id=project_id, _external=True)}
+    }
+    
+    return project_with_links
 
 
 @project_bp.route("/", methods=["POST"])
@@ -28,7 +59,12 @@ def create_project():
 
         cache_key = f"projects_{current_user_id}"
         cache.delete(cache_key)
-        return jsonify(new_project.to_dict()), 201
+        
+        # Convert to dict and add hypermedia links
+        project_dict = new_project.to_dict()
+        project_dict = add_hypermedia_links(project_dict)
+        
+        return jsonify(project_dict), 201
 
     except ValueError as e:
         return handle_error(str(e), 400)
@@ -54,7 +90,11 @@ def get_project(project_id):
         if not project:
             return handle_error("Project not found", 404)
 
-        return jsonify(project.to_dict()), 200
+        # Convert to dict and add hypermedia links
+        project_dict = project.to_dict()
+        project_dict = add_hypermedia_links(project_dict)
+        
+        return jsonify(project_dict), 200
 
     except Exception as e:
         return handle_exception(e)
@@ -80,7 +120,16 @@ def update_project(project_id):
 
         cache_key = f"project_{current_user_id}_{project_id}"
         cache.delete(cache_key)
-        return jsonify(updated_project.to_dict()), 200
+        
+        # Also invalidate the all projects cache
+        all_projects_cache_key = f"projects_{current_user_id}"
+        cache.delete(all_projects_cache_key)
+        
+        # Convert to dict and add hypermedia links
+        project_dict = updated_project.to_dict()
+        project_dict = add_hypermedia_links(project_dict)
+        
+        return jsonify(project_dict), 200
 
     except ValueError as e:
         return handle_error(str(e), 400)
@@ -104,10 +153,22 @@ def delete_project(project_id):
 
         ProjectService.delete_project(project)
 
-        cache_key = f"projects_{current_user_id}"
-        cache.delete(cache_key)
+        # Invalidate related caches
+        project_cache_key = f"project_{current_user_id}_{project_id}"
+        cache.delete(project_cache_key)
+        all_projects_cache_key = f"projects_{current_user_id}"
+        cache.delete(all_projects_cache_key)
 
-        return jsonify({"message": "Project deleted successfully"}), 200
+        # Add navigation links after deletion
+        response = {
+            "message": "Project deleted successfully",
+            "_links": {
+                "projects": {"href": url_for("project_routes.get_all_projects", _external=True)},
+                "create": {"href": url_for("project_routes.create_project", _external=True)}
+            }
+        }
+        
+        return jsonify(response), 200
 
     except Exception as e:
         return handle_exception(e)
@@ -126,8 +187,30 @@ def get_all_projects():
             return handle_error("Current user not found", 404)
 
         projects = ProjectService.fetch_all_projects()
-        # print(projects)
-        return jsonify(projects), 200
+        
+        # Structure the response with hypermedia
+        if isinstance(projects, list):
+            # Format the response structure
+            response = {
+                "projects": [],
+                "_links": {
+                    "self": {"href": url_for("project_routes.get_all_projects", _external=True)},
+                    "create": {"href": url_for("project_routes.create_project", _external=True)}
+                }
+            }
+            
+            # Add hypermedia links to each project
+            for project in projects:
+                if isinstance(project, dict):
+                    response["projects"].append(add_hypermedia_links(project))
+                else:
+                    # Handle cases where items might not be dictionaries
+                    response["projects"].append(project)
+        else:
+            # If not a list, maintain the original structure
+            response = projects
+        
+        return jsonify(response), 200
 
     except Exception as e:
         return handle_exception(e)

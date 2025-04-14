@@ -154,7 +154,4 @@ def fetch_users():
         }
     }
 
-    return jsonify(response), 200
-
-    return jsonify(result), status_code
-
+    return jsonify(response), status_code

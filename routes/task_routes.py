@@ -1,6 +1,4 @@
-# task_bp.py
-
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, url_for
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from extentions.extensions import cache
@@ -9,6 +7,37 @@ from services.task_service import TaskService
 from validators.validators import validate_json
 
 task_bp = Blueprint("task_routes", __name__, url_prefix="/tasks")
+
+
+def add_hypermedia_links(task):
+    """
+    Add hypermedia links to a task resource.
+    
+    Args:
+        task (dict): The task dictionary to add links to
+        
+    Returns:
+        dict: The task with added _links property
+    """
+    if not task or not isinstance(task, dict) or "id" not in task:
+        return task
+    
+    # Create a deep copy of the task to avoid modifying the original
+    task_with_links = dict(task)
+    
+    # Convert task_id to string to ensure URL generation works correctly
+    task_id = str(task["id"])
+    
+    # Add links for the task resource
+    task_with_links["_links"] = {
+        "self": {"href": url_for("task_routes.task_operations", task_id=task_id, _external=True)},
+        "collection": {"href": url_for("task_routes.get_tasks", _external=True)}
+    }
+    
+    # We'll avoid making assumptions about other routes that might not exist
+    # Instead, we'll only include links we're sure about
+    
+    return task_with_links
 
 
 @task_bp.errorhandler(400)
@@ -37,6 +66,11 @@ def create_task():
 
         data = request.get_json()
         new_task = TaskService.create_task(data, user_id)
+        
+        # Add hypermedia links to the newly created task
+        if isinstance(new_task, dict) and "id" in new_task:
+            new_task = add_hypermedia_links(new_task)
+            
         return jsonify(new_task), 201
     except ValueError as e:
         return jsonify({"error": "Invalid data", "message": str(e)}), 400
@@ -54,11 +88,25 @@ def task_operations(task_id):
 
         if request.method == "GET":
             task = TaskService.get_task(task_id)
+            
+            # Add hypermedia links to the retrieved task
+            if isinstance(task, dict) and "id" in task:
+                task = add_hypermedia_links(task)
+                
             return jsonify(task), 200
 
         if request.method == "DELETE":
             TaskService.delete_task(task_id)
-            return jsonify({"message": "Task deleted successfully"}), 200
+            
+            # Add hypermedia links for navigation after deletion
+            response = {
+                "message": "Task deleted successfully",
+                "_links": {
+                    "tasks": {"href": url_for("task_routes.get_tasks", _external=True)}
+                }
+            }
+            
+            return jsonify(response), 200
 
         if request.method == "PUT":
             data = request.get_json()
@@ -66,6 +114,11 @@ def task_operations(task_id):
                 return jsonify({"error": "No data provided"}), 400
 
             updated_task = TaskService.update_task(task_id, data, user_id)
+            
+            # Add hypermedia links to the updated task
+            if isinstance(updated_task, dict) and "id" in updated_task:
+                updated_task = add_hypermedia_links(updated_task)
+                
             return jsonify(updated_task), 200
 
     except ValueError as e:
@@ -90,7 +143,22 @@ def get_tasks():
         filters = {k: v for k, v in filters.items() if v is not None}
 
         tasks = TaskService.get_tasks(filters)
-        return jsonify(tasks), 200
+        
+        # Prepare response structure with hypermedia links
+        if not isinstance(tasks, list):
+            # If it's not a list, keep the original structure
+            response = tasks 
+        else:
+            # If it's a list, wrap it with additional metadata
+            response = {
+                "tasks": [add_hypermedia_links(task) for task in tasks],
+                "_links": {
+                    "self": {"href": url_for("task_routes.get_tasks", **{k: v for k, v in request.args.items()}, _external=True)},
+                    "create": {"href": url_for("task_routes.create_task", _external=True)}
+                }
+            }
+        
+        return jsonify(response), 200
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 400

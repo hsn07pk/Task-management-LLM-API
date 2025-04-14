@@ -136,31 +136,25 @@ def fetch_users():
     """
     result, status_code = UserService.get_all_users()
 
-    if status_code == 200:
-        users = []
-        for user in result:
-            if isinstance(user, dict) and "id" in user:
-                user["_links"] = generate_user_links(user_id=user["id"])
-                users.append(user)
 
-        response = {
-            "users": users,
-            "_links": {
-                "self": {
-                    "href": url_for("user_routes.fetch_users", _external=True),
-                    "rel": "self",
-                    "method": "GET"
-                },
-                "create": {
-                    "href": url_for("user_routes.create_user", _external=True),
-                    "rel": "create",
-                    "method": "POST",
-                    "schema": "/schemas/user.json"
-                }
+    response = {
+        "users": result,
+        "_links": {
+            "self": {
+                "href": url_for("user_routes.fetch_users", _external=True),
+                "rel": "self",
+                "method": "GET"
+            },
+            "create": {
+                "href": url_for("user_routes.create_user", _external=True),
+                "rel": "create",
+                "method": "POST",
+                "schema": "/schemas/user.json"
             }
         }
+    }
 
-        return jsonify(response), 200
+    return jsonify(response), 200
 
     return jsonify(result), status_code
 

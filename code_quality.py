@@ -32,8 +32,22 @@ def run_command(command, title):
     return result.returncode
 
 
+def handle_fix_mode():
+    """Run automatic code formatters to fix style issues."""
+    # Automatic correction mode
+    print_header("AUTOMATIC CODE CORRECTION")
+    run_command("black .", "BLACK - Code formatting")
+    run_command("isort --profile black .", "ISORT - Import sorting")
+    print(f"{GREEN}Automatic corrections applied.{RESET}")
+
+
 def main():
     """Main function that executes all analysis tools."""
+    # Check if running in fix mode
+    if len(sys.argv) > 1 and sys.argv[1] == "--fix":
+        handle_fix_mode()
+        return
+
     # Create a directory for reports if it doesn't exist
     reports_dir = "reports"
     if not os.path.exists(reports_dir):
@@ -57,18 +71,16 @@ def main():
         run_command("isort --check-only --profile black .", "ISORT - Import order check")
 
         # Run Flake8 (linter)
-        run_command("flake8 .", "FLAKE8 - Code style check")
+        run_command("flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics", "FLAKE8 (Fatal Errors)")
+        
+        # Run Flake8 with style warnings
+        run_command("flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics", "FLAKE8 (Style Warnings)")
 
-        # Run Pylint (static analysis)
-        run_command(
-            "pylint app.py models.py routes validators schemas", "PYLINT - Static code analysis"
-        )
+        # Run Vulture to detect dead code
+        run_command("vulture .", "VULTURE - Dead code detection")
 
         # Run Bandit (security analysis)
-        run_command("bandit -r .", "BANDIT - Code security analysis")
-
-        # Run MyPy (type checking)
-        run_command("mypy app.py models.py routes validators schemas", "MYPY - Type checking")
+        run_command("bandit -r . -c pyproject.toml", "BANDIT - Security issues")
 
         # Run tests with coverage
         run_command("pytest --cov=. tests/", "PYTEST - Running tests with coverage")
@@ -82,11 +94,4 @@ def main():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--fix":
-        # Automatic correction mode
-        print_header("AUTOMATIC CODE CORRECTION")
-        run_command("black .", "BLACK - Code formatting")
-        run_command("isort --profile black .", "ISORT - Import sorting")
-        print(f"{GREEN}Automatic corrections applied.{RESET}")
-    else:
-        main()
+    main()

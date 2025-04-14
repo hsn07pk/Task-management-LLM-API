@@ -117,7 +117,7 @@ def test_create_user(client, app):
     Tests creating a new user.
 
     This test checks if a user can be successfully created by sending a POST
-    request to the `/users` endpoint with a valid payload. It verifies that
+    request to the `/users/` endpoint with a valid payload. It verifies that
     the user is created by checking the response status and the returned
     user data.
 
@@ -127,7 +127,7 @@ def test_create_user(client, app):
     """
     with app.app_context():
         response = client.post(
-            "/users",
+            "/users/",
             json={
                 "username": "newuser",
                 "email": "new@example.com",
@@ -155,7 +155,7 @@ def test_create_user_duplicate_email(client, app):
     with app.app_context():
         # Create first user
         client.post(
-            "/users",
+            "/users/",
             json={
                 "username": "user1",
                 "email": "duplicate@example.com",
@@ -166,7 +166,7 @@ def test_create_user_duplicate_email(client, app):
 
         # Try to create second user with the same email
         response = client.post(
-            "/users",
+            "/users/",
             json={
                 "username": "user2",
                 "email": "duplicate@example.com",
@@ -192,7 +192,7 @@ def test_create_user_duplicate_username(client, app):
     with app.app_context():
         # Create first user
         client.post(
-            "/users",
+            "/users/",
             json={
                 "username": "sameusername",
                 "email": "user1@example.com",
@@ -203,7 +203,7 @@ def test_create_user_duplicate_username(client, app):
 
         # Try to create second user with the same username
         response = client.post(
-            "/users",
+            "/users/",
             json={
                 "username": "sameusername",
                 "email": "user2@example.com",
@@ -229,7 +229,7 @@ def test_create_user_invalid_data(client, app):
     """
     with app.app_context():
         response = client.post(
-            "/users",
+            "/users/",
             json={
                 "username": "invaliduser",
                 "email": "invalid-email",  # Invalid email format

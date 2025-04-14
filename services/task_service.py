@@ -3,6 +3,13 @@ from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
 
+def is_valid_uuid(value):
+    try:
+        UUID(value)
+        return True
+    except ValueError:
+        return False
+
 from models import PriorityEnum, Project, StatusEnum, Task, User, db
 
 
@@ -127,28 +134,39 @@ class TaskService:
 
     @staticmethod
     def get_tasks(filters):
-        query = Task.query
+        """
+        Retrieve tasks based on provided filters.
 
-        if "project_id" in filters:
-            project_uuid = UUID(filters["project_id"])
-            project = Project.query.get(project_uuid)
+        Args:
+            filters (dict): A dictionary of filters to apply when retrieving tasks.
+
+        Returns:
+            list: A list of tasks that match the filters.
+
+        Raises:
+            ValueError: If any of the filters are invalid.
+        """
+        if 'project_id' in filters:
+            if not is_valid_uuid(filters['project_id']):
+                raise ValueError("Invalid project_id")
+            project = Project.query.get(filters['project_id'])
             if not project:
                 raise ValueError(f"Project with ID {filters['project_id']} not found")
-            query = query.filter_by(project_id=project_uuid)
 
-        if "assignee_id" in filters:
-            assignee_uuid = UUID(filters["assignee_id"])
-            assignee = User.query.get(assignee_uuid)
+        if 'assignee_id' in filters:
+            if not is_valid_uuid(filters['assignee_id']):
+                raise ValueError("Invalid assignee_id")
+            assignee = User.query.get(filters['assignee_id'])
             if not assignee:
                 raise ValueError(f"User with ID {filters['assignee_id']} not found")
-            query = query.filter_by(assignee_id=assignee_uuid)
 
-        if "status" in filters:
-            if filters["status"] not in [e.value for e in StatusEnum]:
-                raise ValueError(
-                    f"Invalid status value. Valid values are: {[e.value for e in StatusEnum]}"
-                )
-            query = query.filter_by(status=filters["status"])
+        if 'status' in filters:
+            if filters['status'] not in [e.value for e in StatusEnum]:
+                raise ValueError("Invalid status value")
 
-        tasks = query.all()
-        return [task.to_dict() for task in tasks]
+        if 'priority' in filters:
+            if filters['priority'] not in [e.value for e in PriorityEnum]:
+                raise ValueError("Invalid priority value")
+
+        tasks = Task.query.filter_by(**filters).all()
+        return [task.to_dict() for task in tasks] 

@@ -13,11 +13,13 @@ class ProjectService:
     def create_project(data):
         """Creates a new project."""
         try:
-            # Validate team_id
-            team_id = UUID(data["team_id"])
-            team = Team.query.get(team_id)
-            if not team:
-                raise ValueError("Team not found")
+            # Handle team_id if provided
+            team_id = None
+            if "team_id" in data and data["team_id"]:
+                team_id = UUID(data["team_id"])
+                team = Team.query.get(team_id)
+                if not team:
+                    raise ValueError("Team not found")
 
             # Handle optional category_id
             category_id = UUID(data["category_id"]) if data.get("category_id") else None
@@ -28,6 +30,7 @@ class ProjectService:
                 description=data.get("description"),
                 team_id=team_id,
                 category_id=category_id,
+                status=data.get("status", "planning")
             )
             db.session.add(new_project)
             db.session.commit()
@@ -54,6 +57,9 @@ class ProjectService:
         try:
             project.title = data.get("title", project.title)
             project.description = data.get("description", project.description)
+            
+            if "status" in data:
+                project.status = data["status"]
 
             if "team_id" in data:
                 team_id = UUID(data["team_id"])

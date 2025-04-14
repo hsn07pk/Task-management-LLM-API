@@ -54,7 +54,7 @@ def get_user(user_id):
     result, status_code = UserService.get_user(user_id)
     if status_code == 200:
         result["_links"] = generate_user_links(user_id=user_id)
-        
+
     return jsonify(result), status_code
 
 
@@ -105,22 +105,20 @@ def delete_user(user_id):
     current_user_id = get_jwt_identity()
     result, status_code = UserService.delete_user(user_id, current_user_id)
 
-
     if status_code == 200:
-            result["_links"] = {
-                "collection": {
-                    "href": url_for("user_routes.fetch_users", _external=True),
-                    "rel": "collection",
-                    "method": "GET"
-                },
-                "create": {
-                    "href": url_for("user_routes.create_user", _external=True),
-                    "rel": "create",
-                    "method": "POST",
-                    "schema": "/schemas/user.json"
-                }
-            }
-
+        result["_links"] = {
+            "collection": {
+                "href": url_for("user_routes.fetch_users", _external=True),
+                "rel": "collection",
+                "method": "GET",
+            },
+            "create": {
+                "href": url_for("user_routes.create_user", _external=True),
+                "rel": "create",
+                "method": "POST",
+                "schema": "/schemas/user.json",
+            },
+        }
 
     return jsonify(result), status_code
 
@@ -136,22 +134,21 @@ def fetch_users():
     """
     result, status_code = UserService.get_all_users()
 
-
     response = {
         "users": result,
         "_links": {
             "self": {
                 "href": url_for("user_routes.fetch_users", _external=True),
                 "rel": "self",
-                "method": "GET"
+                "method": "GET",
             },
             "create": {
                 "href": url_for("user_routes.create_user", _external=True),
                 "rel": "create",
                 "method": "POST",
-                "schema": "/schemas/user.json"
-            }
-        }
+                "schema": "/schemas/user.json",
+            },
+        },
     }
 
     return jsonify(response), status_code

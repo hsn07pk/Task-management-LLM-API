@@ -1,5 +1,6 @@
 # app.py
 from datetime import timedelta
+
 from flasgger import Swagger
 from flask import Flask, jsonify, request
 from flask_jwt_extended import (
@@ -16,8 +17,6 @@ from routes.project_routes import project_bp
 from routes.task_routes import task_bp
 from routes.team_routes import team_bp
 from routes.user_routes import user_bp
-
-
 
 
 def create_app():
@@ -58,12 +57,11 @@ def create_app():
     app.register_blueprint(team_bp)
     app.register_blueprint(project_bp)
     app.register_blueprint(user_bp)
-    
-    
+
     app.config["SWAGGER"] = {
-    "title": "Task Management API",
-    "openapi": "3.0.4",
-    "uiversion": 3,
+        "title": "Task Management API",
+        "openapi": "3.0.4",
+        "uiversion": 3,
     }
 
     swagger = Swagger(app, template_file="doc/openapi.yml")

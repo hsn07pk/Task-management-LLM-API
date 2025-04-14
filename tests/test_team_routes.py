@@ -2,13 +2,13 @@
 
 import json
 import uuid
-from datetime import datetime, timedelta
+# from datetime import datetime, timedelta
 
 import pytest
 from flask_jwt_extended import create_access_token
 from werkzeug.security import generate_password_hash
 
-from models import PriorityEnum, StatusEnum, Team, User, db
+from models import Team, User, db
 
 
 @pytest.fixture(scope="session")

@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 from enum import Enum
 
 from flask_sqlalchemy import SQLAlchemy
@@ -14,7 +13,8 @@ db = SQLAlchemy()
 # User Model
 class User(db.Model):
     """
-    User model represents a user in the system. It includes information such as username, email, password,
+    User model represents a user in the system. It includes 
+    information such as username, email, password,
     role, and timestamps for account creation and last login.
     """
 
@@ -71,8 +71,8 @@ class User(db.Model):
 # Team Model
 class Team(db.Model):
     """
-    Team model represents a team within the system. It includes information such as team name, description,
-    and a reference to the team lead (user).
+    Team model represents a team within the system. It includes information such as
+    team name, description, and a reference to the team lead (user).
     """
 
     __tablename__ = "TEAM"
@@ -112,8 +112,8 @@ class Team(db.Model):
 # Category Model
 class Category(db.Model):
     """
-    Category model represents a category for projects. It includes a name, description, and color code for
-    visual representation.
+    Category model represents a category for projects. It includes a name,
+    description, and color code for visual representation.
     """
 
     __tablename__ = "CATEGORY"
@@ -130,8 +130,8 @@ class Category(db.Model):
 # Project Model
 class Project(db.Model):
     """
-    Project model represents a project within the system. It includes project title, description, status,
-    deadline, and relationships with teams and categories.
+    Project model represents a project within the system. It includes project title,
+    description, status, deadline, and relationships with teams and categories.
     """
 
     __tablename__: str = "PROJECT"
@@ -200,8 +200,9 @@ class StatusEnum(str, Enum):
 # Task Model
 class Task(db.Model):
     """
-    Task model represents a task within a project. It includes task title, description, priority, status,
-    deadlines, and relationships with users (assignees, creators, and updaters).
+    Task model represents a task within a project. It includes task title, description,
+    priority, status,deadlines, and relationships with users
+    (assignees, creators, and updaters).
     """
 
     __tablename__ = "TASK"
@@ -285,8 +286,8 @@ class Task(db.Model):
 # Team Membership Model
 class TeamMembership(db.Model):
     """
-    Team Membership model represents a membership record for a user within a team, including the role of
-    the user within the team.
+    Team Membership model represents a membership record for a user within a team,
+    including the role of the user within the team.
     """
 
     __tablename__ = "TEAM_MEMBERSHIP"

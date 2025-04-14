@@ -142,7 +142,7 @@ def test_project(app, test_user):
     """
     with app.app_context():
         # Store the user_id as a string to avoid SQLAlchemy session issues
-        user_id = test_user["id"]
+        # user_id = test_user["id"]
 
         project = Project(
             title="Test Project",

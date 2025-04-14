@@ -343,6 +343,8 @@ coverage report -m
 ```
 
 
+### Hypermedia Design
+
 ```mermaid
 stateDiagram-v2
     [*] --> Users: GET /users

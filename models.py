@@ -180,7 +180,6 @@ class PriorityEnum(int, Enum):
     """
     Enum for defining task priorities.
     """
-
     HIGH = 1
     MEDIUM = 2
     LOW = 3

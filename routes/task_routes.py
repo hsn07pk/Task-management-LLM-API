@@ -86,7 +86,15 @@ def get_tasks():
             "project_id": request.args.get("project_id"),
             "assignee_id": request.args.get("assignee_id"),
             "status": request.args.get("status"),
+            "priority": request.args.get("priority"),
         }
+        
+        if filters["priority"] is not None:
+            try:
+                filters["priority"] = int(filters["priority"])
+            except ValueError:
+                return jsonify({"error": "Invalid priority value"}), 400
+                
         filters = {k: v for k, v in filters.items() if v is not None}
 
         tasks = TaskService.get_tasks(filters)

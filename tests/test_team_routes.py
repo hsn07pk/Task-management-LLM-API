@@ -204,7 +204,7 @@ def test_create_team(client, team_name, lead_id_param, auth_headers, test_user):
     data = {"name": team_name, "lead_id": lead_id}
 
     # Make POST request to create the team
-    response = client.post("/teams", json=data, headers=auth_headers)
+    response = client.post("/teams/", json=data, headers=auth_headers)
 
     # Assert the team was created successfully
     assert response.status_code == 201, f"Expected status code 201, got {response.status_code}"

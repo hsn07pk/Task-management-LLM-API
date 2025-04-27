@@ -4,13 +4,51 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from extentions.extensions import cache
 from schemas.schemas import USER_SCHEMA, USER_UPDATE_SCHEMA
 from services.user_services import UserService
-from utils.hypermedia.user_hypermedia import generate_user_links
+from utils.hypermedia.link_builder import build_standard_links
 from validators.validators import validate_json
 
 user_bp = Blueprint(
     "user_routes", __name__, url_prefix="/users"
-)  # prefix user so that we don't need to add user again and again
+)
 
+def generate_user_hypermedia_links(user_id=None):
+    """
+    Generate hypermedia links for user resources.
+    
+    Args:
+        user_id (str, optional): The ID of the specific user
+        
+    Returns:
+        dict: A dictionary of links
+    """
+    links = build_standard_links("user", user_id)
+    
+    # Add user-specific links
+    if user_id:
+        user_specific = {
+            "update": {
+                "href": url_for("user_routes.update_user", user_id=user_id, _external=True),
+                "method": "PUT",
+                "schema": "/schemas/user-update.json"
+            },
+            "delete": {
+                "href": url_for("user_routes.delete_user", user_id=user_id, _external=True),
+                "method": "DELETE"
+            }
+        }
+        links.update(user_specific)
+    else:
+        # Collection-specific links
+        collection_links = {
+            "create": {
+                "href": url_for("user_routes.create_user", _external=True),
+                "method": "POST",
+                "schema": "/schemas/user.json"
+            }
+        }
+        links.update(collection_links)
+    
+    return links
 
 @user_bp.route("/", methods=["POST"])
 @validate_json(USER_SCHEMA)
@@ -30,7 +68,7 @@ def create_user():
     data = request.get_json()
     result, status_code = UserService.create_user(data)
     if status_code == 201 and "id" in result:
-        result["_links"] = generate_user_links(user_id=result["id"])
+        result["_links"] = generate_user_hypermedia_links(user_id=result["id"])
     return jsonify(result), status_code
 
 
@@ -53,7 +91,7 @@ def get_user(user_id):
     """
     result, status_code = UserService.get_user(user_id)
     if status_code == 200:
-        result["_links"] = generate_user_links(user_id=user_id)
+        result["_links"] = generate_user_hypermedia_links(user_id=user_id)
 
     return jsonify(result), status_code
 
@@ -83,7 +121,7 @@ def update_user(user_id):
     cache_key = f"user_{current_user_id}_{user_id}"
     cache.delete(cache_key)
     if status_code == 200:
-        result["_links"] = generate_user_links(user_id=user_id)
+        result["_links"] = generate_user_hypermedia_links(user_id=user_id)
     return jsonify(result), status_code
 
 
@@ -106,19 +144,8 @@ def delete_user(user_id):
     result, status_code = UserService.delete_user(user_id, current_user_id)
 
     if status_code == 200:
-        result["_links"] = {
-            "collection": {
-                "href": url_for("user_routes.fetch_users", _external=True),
-                "rel": "collection",
-                "method": "GET",
-            },
-            "create": {
-                "href": url_for("user_routes.create_user", _external=True),
-                "rel": "create",
-                "method": "POST",
-                "schema": "/schemas/user.json",
-            },
-        }
+        # After successful deletion, provide navigation links to collection
+        result["_links"] = generate_user_hypermedia_links()
 
     return jsonify(result), status_code
 
@@ -134,21 +161,22 @@ def fetch_users():
     """
     result, status_code = UserService.get_all_users()
 
+    # Format the response with hypermedia links
     response = {
-        "users": result,
-        "_links": {
-            "self": {
-                "href": url_for("user_routes.fetch_users", _external=True),
-                "rel": "self",
-                "method": "GET",
-            },
-            "create": {
-                "href": url_for("user_routes.create_user", _external=True),
-                "rel": "create",
-                "method": "POST",
-                "schema": "/schemas/user.json",
-            },
-        },
+        "users": [],
+        "_links": generate_user_hypermedia_links()
     }
+    
+    # Add individual user links
+    if isinstance(result, list):
+        for user in result:
+            if isinstance(user, dict) and "id" in user:
+                user_with_links = dict(user)
+                user_with_links["_links"] = generate_user_hypermedia_links(user_id=user["id"])
+                response["users"].append(user_with_links)
+            else:
+                response["users"].append(user)
+    else:
+        response["users"] = result
 
     return jsonify(response), status_code

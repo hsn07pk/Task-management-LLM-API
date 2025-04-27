@@ -4,92 +4,135 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from extentions.extensions import cache
 from schemas.schemas import TEAM_MEMBERSHIP_SCHEMA, TEAM_SCHEMA, TEAM_UPDATE_SCHEMA
 from services.team_services import TeamService
+from utils.hypermedia.link_builder import build_standard_links
 from validators.validators import validate_json
 
 # Blueprint for team-related routes
 team_bp = Blueprint("team_routes", __name__, url_prefix="/teams")
 
 
-def add_hypermedia_links(team, members=False):
+def generate_team_hypermedia_links(team_id=None, members=False):
     """
-    Add hypermedia links to a team resource.
-
+    Generate hypermedia links for team resources.
+    
     Args:
-        team (dict): The team dictionary to add links to
+        team_id (str, optional): The ID of the specific team
         members (bool): Whether to include links to team member resources
-
+        
     Returns:
-        dict: The team with added _links property
+        dict: A dictionary of links
     """
-    if not team or not isinstance(team, dict) or "id" not in team:
-        return team
-
-    # Create a deep copy of the team to avoid modifying the original
-    team_with_links = dict(team)
-
-    # Convert team_id to string to ensure URL generation works correctly
-    team_id = str(team["id"])
-
-    # Add links for the team resource
-    team_with_links["_links"] = {
-        "self": {"href": url_for("team_routes.get_team", team_id=team_id, _external=True)},
-        "update": {"href": url_for("team_routes.update_team", team_id=team_id, _external=True)},
-        "delete": {"href": url_for("team_routes.delete_team", team_id=team_id, _external=True)},
-        "members": {
-            "href": url_for("team_routes.get_team_members", team_id=team_id, _external=True)
-        },
-        "collection": {"href": url_for("team_routes.get_all_teams", _external=True)},
-    }
-
-    # If this is a members response, add member-specific links
-    if members:
-        team_with_links["_links"]["add_member"] = {
-            "href": url_for("team_routes.add_team_member", team_id=team_id, _external=True)
+    links = build_standard_links("team", team_id)
+    
+    # Add team-specific links
+    if team_id:
+        team_specific = {
+            "update": {
+                "href": url_for("team_routes.update_team", team_id=team_id, _external=True),
+                "method": "PUT",
+                "schema": "/schemas/team-update.json"
+            },
+            "delete": {
+                "href": url_for("team_routes.delete_team", team_id=team_id, _external=True),
+                "method": "DELETE"
+            },
+            "members": {
+                "href": url_for("team_routes.get_team_members", team_id=team_id, _external=True),
+                "method": "GET"
+            }
         }
+        links.update(team_specific)
+        
+        # If this is a members response, add member-specific links
+        if members:
+            member_links = {
+                "add_member": {
+                    "href": url_for("team_routes.add_team_member", team_id=team_id, _external=True),
+                    "method": "POST",
+                    "schema": "/schemas/team-membership.json"
+                }
+            }
+            links.update(member_links)
+    else:
+        # Collection-specific links
+        collection_links = {
+            "create": {
+                "href": url_for("team_routes.create_team", _external=True),
+                "method": "POST",
+                "schema": "/schemas/team.json"
+            }
+        }
+        links.update(collection_links)
+    
+    return links
 
-    return team_with_links
 
-
-def add_member_hypermedia_links(team_id, member):
+def generate_team_member_links(team_id, user_id=None):
     """
-    Add hypermedia links to a team member resource.
-
+    Generate hypermedia links for team member resources.
+    
     Args:
         team_id (str): The team ID
-        member (dict): The member dictionary to add links to
-
+        user_id (str, optional): The user ID of the team member
+        
     Returns:
-        dict: The member with added _links property
+        dict: A dictionary of links
     """
-    if not member or not isinstance(member, dict) or "user_id" not in member:
-        return member
-
-    # Create a deep copy of the member to avoid modifying the original
-    member_with_links = dict(member)
-
-    # Ensure IDs are strings for URL generation
-    team_id = str(team_id)
-    user_id = str(member["user_id"])
-
-    # Add links for the member resource
-    member_with_links["_links"] = {
-        "team": {"href": url_for("team_routes.get_team", team_id=team_id, _external=True)},
-        "update": {
-            "href": url_for(
-                "team_routes.update_team_member", team_id=team_id, user_id=user_id, _external=True
-            )
+    links = {
+        "team": {
+            "href": url_for("team_routes.get_team", team_id=team_id, _external=True),
+            "method": "GET"
         },
-        "delete": {
-            "href": url_for(
-                "team_routes.remove_team_member", team_id=team_id, user_id=user_id, _external=True
-            )
+        "members": {
+            "href": url_for("team_routes.get_team_members", team_id=team_id, _external=True),
+            "method": "GET"
         },
-        "collection": {
-            "href": url_for("team_routes.get_team_members", team_id=team_id, _external=True)
-        },
+        "root": {
+            "href": url_for("entry_point.api_root", _external=True),
+            "method": "GET"
+        }
     }
-
-    return member_with_links
+    
+    # Add member-specific links if user_id is provided
+    if user_id:
+        member_specific = {
+            "update": {
+                "href": url_for(
+                    "team_routes.update_team_member", 
+                    team_id=team_id, 
+                    user_id=user_id, 
+                    _external=True
+                ),
+                "method": "PUT",
+                "schema": "/schemas/team-membership-update.json"
+            },
+            "delete": {
+                "href": url_for(
+                    "team_routes.remove_team_member", 
+                    team_id=team_id, 
+                    user_id=user_id, 
+                    _external=True
+                ),
+                "method": "DELETE"
+            },
+            "user": {
+                "href": url_for("user_routes.get_user", user_id=user_id, _external=True),
+                "method": "GET"
+            }
+        }
+        links.update(member_specific)
+    else:
+        # Collection-specific links
+        collection_links = {
+            "add_member": {
+                "href": url_for("team_routes.add_team_member", team_id=team_id, _external=True),
+                "method": "POST",
+                "schema": "/schemas/team-membership.json"
+            }
+        }
+        links.update(collection_links)
+    
+    return links
 
 
 @team_bp.route("/", methods=["GET"])
@@ -105,11 +148,25 @@ def get_all_teams():
     """
     result, status_code = TeamService.get_all_teams()
 
-    # Add hypermedia links to each team in the list
+    # Format the response with hypermedia links
+    response = {
+        "teams": [],
+        "_links": generate_team_hypermedia_links()
+    }
+    
+    # Add individual team links
     if status_code == 200 and isinstance(result, list):
-        result = [add_hypermedia_links(team) for team in result]
+        for team in result:
+            if isinstance(team, dict) and "id" in team:
+                team_with_links = dict(team)
+                team_with_links["_links"] = generate_team_hypermedia_links(team_id=str(team["id"]))
+                response["teams"].append(team_with_links)
+            else:
+                response["teams"].append(team)
+    else:
+        response["teams"] = result
 
-    return jsonify(result), status_code
+    return jsonify(response), status_code
 
 
 @team_bp.route("/", methods=["POST"])
@@ -138,7 +195,7 @@ def create_team():
 
     # Add hypermedia links if team creation was successful
     if status_code == 201 and isinstance(result, dict) and "id" in result:
-        result = add_hypermedia_links(result)
+        result["_links"] = generate_team_hypermedia_links(team_id=str(result["id"]))
 
     return jsonify(result), status_code
 
@@ -165,7 +222,7 @@ def get_team(team_id):
 
     # Add hypermedia links if team was found
     if status_code == 200 and isinstance(result, dict) and "id" in result:
-        result = add_hypermedia_links(result)
+        result["_links"] = generate_team_hypermedia_links(team_id=str(team_id))
 
     return jsonify(result), status_code
 
@@ -205,7 +262,7 @@ def update_team(team_id):
 
     # Add hypermedia links if update was successful
     if status_code == 200 and isinstance(result, dict) and "id" in result:
-        result = add_hypermedia_links(result)
+        result["_links"] = generate_team_hypermedia_links(team_id=str(team_id))
 
     return jsonify(result), status_code
 
@@ -228,16 +285,17 @@ def delete_team(team_id):
     result, status_code = TeamService.delete_team(user_id, team_id)
 
     # Invalidate relevant caches
-    cache_key = f"team_{user_id}_{team_id}"
+    team_id_str = str(team_id)
+    cache_key = f"team_{user_id}_{team_id_str}"
     cache.delete(cache_key)
     all_teams_cache_key = f"team_all_{user_id}"
     cache.delete(all_teams_cache_key)
-    team_members_cache_key = f"team_member_{user_id}_{team_id}"
+    team_members_cache_key = f"team_member_{user_id}_{team_id_str}"
     cache.delete(team_members_cache_key)
 
-    # Add link to teams collection after deletion
+    # Add links to teams collection after deletion
     if status_code == 200 and isinstance(result, dict):
-        result["_links"] = {"teams": {"href": url_for("team_routes.get_all_teams", _external=True)}}
+        result["_links"] = generate_team_hypermedia_links()
 
     return jsonify(result), status_code
 
@@ -280,20 +338,7 @@ def add_team_member(team_id):
     # Add hypermedia links if member was added successfully
     if status_code == 201 and isinstance(result, dict) and "user_id" in data:
         user_id_str = str(data["user_id"])
-        result["_links"] = {
-            "team": {"href": url_for("team_routes.get_team", team_id=team_id_str, _external=True)},
-            "members": {
-                "href": url_for("team_routes.get_team_members", team_id=team_id_str, _external=True)
-            },
-            "member": {
-                "href": url_for(
-                    "team_routes.update_team_member",
-                    team_id=team_id_str,
-                    user_id=user_id_str,
-                    _external=True,
-                )
-            },
-        }
+        result["_links"] = generate_team_member_links(team_id_str, user_id_str)
 
     return jsonify(result), status_code
 
@@ -328,20 +373,7 @@ def update_team_member(team_id, user_id):
     # Add hypermedia links if update was successful
     if status_code == 200 and isinstance(result, dict):
         user_id_str = str(user_id)
-        result["_links"] = {
-            "team": {"href": url_for("team_routes.get_team", team_id=team_id_str, _external=True)},
-            "members": {
-                "href": url_for("team_routes.get_team_members", team_id=team_id_str, _external=True)
-            },
-            "delete": {
-                "href": url_for(
-                    "team_routes.remove_team_member",
-                    team_id=team_id_str,
-                    user_id=user_id_str,
-                    _external=True,
-                )
-            },
-        }
+        result["_links"] = generate_team_member_links(team_id_str, user_id_str)
 
     return jsonify(result), status_code
 
@@ -375,15 +407,7 @@ def remove_team_member(team_id, user_id):
 
     # Add hypermedia links if deletion was successful
     if status_code == 200 and isinstance(result, dict):
-        result["_links"] = {
-            "team": {"href": url_for("team_routes.get_team", team_id=team_id_str, _external=True)},
-            "members": {
-                "href": url_for("team_routes.get_team_members", team_id=team_id_str, _external=True)
-            },
-            "add_member": {
-                "href": url_for("team_routes.add_team_member", team_id=team_id_str, _external=True)
-            },
-        }
+        result["_links"] = generate_team_member_links(team_id_str)
 
     return jsonify(result), status_code
 
@@ -408,27 +432,27 @@ def get_team_members(team_id):
     """
     current_user_id = get_jwt_identity()
     result, status_code = TeamService.get_team_members(current_user_id, team_id)
+    team_id_str = str(team_id)
 
-    # Add hypermedia links to each member and to the response
+    # Format the response with hypermedia links
     if status_code == 200 and isinstance(result, dict):
-        team_id_str = str(team_id)
-
-        # Add links to each member if they exist
-        if "members" in result and isinstance(result["members"], list):
-            result["members"] = [
-                add_member_hypermedia_links(team_id_str, member) for member in result["members"]
-            ]
-
-        # Add team links if team info exists
+        # Add team information with links if available
         if "team" in result and isinstance(result["team"], dict) and "id" in result["team"]:
-            result["team"] = add_hypermedia_links(result["team"], members=True)
-
+            result["team"]["_links"] = generate_team_hypermedia_links(
+                team_id=str(result["team"]["id"]), 
+                members=True
+            )
+        
+        # Add links to each member
+        if "members" in result and isinstance(result["members"], list):
+            for member in result["members"]:
+                if isinstance(member, dict) and "user_id" in member:
+                    member["_links"] = generate_team_member_links(
+                        team_id_str, 
+                        str(member["user_id"])
+                    )
+        
         # Add collection links
-        result["_links"] = {
-            "team": {"href": url_for("team_routes.get_team", team_id=team_id_str, _external=True)},
-            "add_member": {
-                "href": url_for("team_routes.add_team_member", team_id=team_id_str, _external=True)
-            },
-        }
+        result["_links"] = generate_team_member_links(team_id_str)
 
     return jsonify(result), status_code

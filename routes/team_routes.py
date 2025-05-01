@@ -1,15 +1,12 @@
 from flask import Blueprint, jsonify, request, url_for
 from flask_jwt_extended import get_jwt_identity, jwt_required
-
 from extentions.extensions import cache
 from schemas.schemas import TEAM_MEMBERSHIP_SCHEMA, TEAM_SCHEMA, TEAM_UPDATE_SCHEMA
 from services.team_services import TeamService
 from utils.hypermedia.link_builder import build_standard_links
 from validators.validators import validate_json
 
-# Blueprint for team-related routes
 team_bp = Blueprint("team_routes", __name__, url_prefix="/teams")
-
 
 def generate_team_hypermedia_links(team_id=None, members=False):
     """
@@ -147,14 +144,10 @@ def get_all_teams():
         - HTTP Status Code: 200 (OK) on success.
     """
     result, status_code = TeamService.get_all_teams()
-
-    # Format the response with hypermedia links
     response = {
         "teams": [],
         "_links": generate_team_hypermedia_links()
     }
-    
-    # Add individual team links
     if status_code == 200 and isinstance(result, list):
         for team in result:
             if isinstance(team, dict) and "id" in team:
@@ -165,9 +158,7 @@ def get_all_teams():
                 response["teams"].append(team)
     else:
         response["teams"] = result
-
     return jsonify(response), status_code
-
 
 @team_bp.route("/", methods=["POST"])
 @jwt_required()
@@ -188,19 +179,13 @@ def create_team():
     user_id = get_jwt_identity()
     data = request.get_json()
     result, status_code = TeamService.create_team(user_id, data)
-
-    # Invalidate the cache
     cache_key = f"team_all_{user_id}"
     cache.delete(cache_key)
-
-    # Add hypermedia links if team creation was successful
     if status_code == 201 and isinstance(result, dict) and "id" in result:
         result["_links"] = generate_team_hypermedia_links(team_id=str(result["id"]))
-
     return jsonify(result), status_code
 
-
-@team_bp.route("/<uuid:team_id>", methods=["GET"])
+@team_bp.route("/<team_id>", methods=["GET"])
 @jwt_required()
 @cache.cached(
     timeout=300, key_prefix=lambda: f"team_{get_jwt_identity()}_{request.view_args['team_id']}"
@@ -219,15 +204,11 @@ def get_team(team_id):
     """
     user_id = get_jwt_identity()
     result, status_code = TeamService.get_team(user_id, team_id)
-
-    # Add hypermedia links if team was found
     if status_code == 200 and isinstance(result, dict) and "id" in result:
         result["_links"] = generate_team_hypermedia_links(team_id=str(team_id))
-
     return jsonify(result), status_code
 
-
-@team_bp.route("/<uuid:team_id>", methods=["PUT"])
+@team_bp.route("/<team_id>", methods=["PUT"])
 @jwt_required()
 @validate_json(TEAM_UPDATE_SCHEMA)
 def update_team(team_id):
@@ -251,23 +232,15 @@ def update_team(team_id):
     user_id = get_jwt_identity()
     data = request.get_json()
     result, status_code = TeamService.update_team(user_id, team_id, data)
-
-    # Invalidate the cache for this team
     cache_key = f"team_{user_id}_{team_id}"
     cache.delete(cache_key)
-
-    # Also invalidate the all teams cache
     all_teams_cache_key = f"team_all_{user_id}"
     cache.delete(all_teams_cache_key)
-
-    # Add hypermedia links if update was successful
     if status_code == 200 and isinstance(result, dict) and "id" in result:
         result["_links"] = generate_team_hypermedia_links(team_id=str(team_id))
-
     return jsonify(result), status_code
 
-
-@team_bp.route("/<uuid:team_id>", methods=["DELETE"])
+@team_bp.route("/<team_id>", methods=["DELETE"])
 @jwt_required()
 def delete_team(team_id):
     """
@@ -283,8 +256,6 @@ def delete_team(team_id):
     """
     user_id = get_jwt_identity()
     result, status_code = TeamService.delete_team(user_id, team_id)
-
-    # Invalidate relevant caches
     team_id_str = str(team_id)
     cache_key = f"team_{user_id}_{team_id_str}"
     cache.delete(cache_key)
@@ -292,18 +263,13 @@ def delete_team(team_id):
     cache.delete(all_teams_cache_key)
     team_members_cache_key = f"team_member_{user_id}_{team_id_str}"
     cache.delete(team_members_cache_key)
-
-    # Add links to teams collection after deletion
     if status_code == 200 and isinstance(result, dict):
         result["_links"] = generate_team_hypermedia_links()
-
     return jsonify(result), status_code
-
 
 # ------------------ TEAM MEMBERSHIP ROUTES ------------------
 
-
-@team_bp.route("/<uuid:team_id>/members", methods=["POST"])
+@team_bp.route("/<team_id>/members", methods=["POST"])
 @jwt_required()
 @validate_json(TEAM_MEMBERSHIP_SCHEMA)
 def add_team_member(team_id):
@@ -325,25 +291,17 @@ def add_team_member(team_id):
     current_user_id = get_jwt_identity()
     data = request.get_json()
     result, status_code = TeamService.add_team_member(current_user_id, team_id, data)
-
-    # Invalidate the cache for this team's members
     team_id_str = str(team_id)
     cache_key = f"team_member_{current_user_id}_{team_id_str}"
     cache.delete(cache_key)
-
-    # Also invalidate the team details cache
     team_cache_key = f"team_{current_user_id}_{team_id_str}"
     cache.delete(team_cache_key)
-
-    # Add hypermedia links if member was added successfully
     if status_code == 201 and isinstance(result, dict) and "user_id" in data:
         user_id_str = str(data["user_id"])
         result["_links"] = generate_team_member_links(team_id_str, user_id_str)
-
     return jsonify(result), status_code
 
-
-@team_bp.route("/<uuid:team_id>/members/<uuid:user_id>", methods=["PUT"])
+@team_bp.route("/<team_id>/members/<user_id>", methods=["PUT"])
 @jwt_required()
 @validate_json({"type": "object", "properties": {"role": {"type": "string"}}, "required": ["role"]})
 def update_team_member(team_id, user_id):
@@ -364,21 +322,15 @@ def update_team_member(team_id, user_id):
     current_user_id = get_jwt_identity()
     data = request.get_json()
     result, status_code = TeamService.update_team_member(current_user_id, team_id, user_id, data)
-
-    # Invalidate the cache for this team's members
     team_id_str = str(team_id)
     cache_key = f"team_member_{current_user_id}_{team_id_str}"
     cache.delete(cache_key)
-
-    # Add hypermedia links if update was successful
     if status_code == 200 and isinstance(result, dict):
         user_id_str = str(user_id)
         result["_links"] = generate_team_member_links(team_id_str, user_id_str)
-
     return jsonify(result), status_code
 
-
-@team_bp.route("/<uuid:team_id>/members/<uuid:user_id>", methods=["DELETE"])
+@team_bp.route("/<team_id>/members/<user_id>", methods=["DELETE"])
 @jwt_required()
 def remove_team_member(team_id, user_id):
     """
@@ -395,24 +347,16 @@ def remove_team_member(team_id, user_id):
     """
     current_user_id = get_jwt_identity()
     result, status_code = TeamService.remove_team_member(current_user_id, team_id, user_id)
-
-    # Invalidate the cache for this team's members
     team_id_str = str(team_id)
     cache_key = f"team_member_{current_user_id}_{team_id_str}"
     cache.delete(cache_key)
-
-    # Also invalidate the team details cache
     team_cache_key = f"team_{current_user_id}_{team_id_str}"
     cache.delete(team_cache_key)
-
-    # Add hypermedia links if deletion was successful
     if status_code == 200 and isinstance(result, dict):
         result["_links"] = generate_team_member_links(team_id_str)
-
     return jsonify(result), status_code
 
-
-@team_bp.route("/<uuid:team_id>/members", methods=["GET"])
+@team_bp.route("/<team_id>/members", methods=["GET"])
 @jwt_required()
 @cache.cached(
     timeout=300,
@@ -433,26 +377,12 @@ def get_team_members(team_id):
     current_user_id = get_jwt_identity()
     result, status_code = TeamService.get_team_members(current_user_id, team_id)
     team_id_str = str(team_id)
-
-    # Format the response with hypermedia links
     if status_code == 200 and isinstance(result, dict):
-        # Add team information with links if available
         if "team" in result and isinstance(result["team"], dict) and "id" in result["team"]:
-            result["team"]["_links"] = generate_team_hypermedia_links(
-                team_id=str(result["team"]["id"]), 
-                members=True
-            )
-        
-        # Add links to each member
+            result["team"]["_links"] = generate_team_hypermedia_links(team_id=str(result["team"]["id"]), members=True)
         if "members" in result and isinstance(result["members"], list):
             for member in result["members"]:
                 if isinstance(member, dict) and "user_id" in member:
-                    member["_links"] = generate_team_member_links(
-                        team_id_str, 
-                        str(member["user_id"])
-                    )
-        
-        # Add collection links
+                    member["_links"] = generate_team_member_links(team_id_str, str(member["user_id"]))
         result["_links"] = generate_team_member_links(team_id_str)
-
     return jsonify(result), status_code

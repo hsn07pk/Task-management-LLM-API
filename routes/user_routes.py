@@ -1,6 +1,5 @@
 from flask import Blueprint, jsonify, request, url_for
 from flask_jwt_extended import get_jwt_identity, jwt_required
-
 from extentions.extensions import cache
 from schemas.schemas import USER_SCHEMA, USER_UPDATE_SCHEMA
 from services.user_services import UserService
@@ -10,19 +9,15 @@ from validators.validators import validate_json
 user_bp = Blueprint(
     "user_routes", __name__, url_prefix="/users"
 )
-
 def generate_user_hypermedia_links(user_id=None):
     """
     Generate hypermedia links for user resources.
-    
     Args:
         user_id (str, optional): The ID of the specific user
-        
     Returns:
         dict: A dictionary of links
     """
     links = build_standard_links("user", user_id)
-    
     # Add user-specific links
     if user_id:
         user_specific = {
@@ -38,7 +33,6 @@ def generate_user_hypermedia_links(user_id=None):
         }
         links.update(user_specific)
     else:
-        # Collection-specific links
         collection_links = {
             "create": {
                 "href": url_for("user_routes.create_user", _external=True),
@@ -47,7 +41,6 @@ def generate_user_hypermedia_links(user_id=None):
             }
         }
         links.update(collection_links)
-    
     return links
 
 @user_bp.route("/", methods=["POST"])
@@ -71,8 +64,7 @@ def create_user():
         result["_links"] = generate_user_hypermedia_links(user_id=result["id"])
     return jsonify(result), status_code
 
-
-@user_bp.route("/<uuid:user_id>", methods=["GET"])
+@user_bp.route("/<user_id>", methods=["GET"])
 @jwt_required()
 @cache.cached(
     timeout=300, key_prefix=lambda: f"user_{get_jwt_identity()}_{request.view_args['user_id']}"
@@ -92,11 +84,9 @@ def get_user(user_id):
     result, status_code = UserService.get_user(user_id)
     if status_code == 200:
         result["_links"] = generate_user_hypermedia_links(user_id=user_id)
-
     return jsonify(result), status_code
 
-
-@user_bp.route("/<uuid:user_id>", methods=["PUT"])
+@user_bp.route("/<user_id>", methods=["PUT"])
 @jwt_required()
 @validate_json(USER_UPDATE_SCHEMA)
 def update_user(user_id):
@@ -124,8 +114,7 @@ def update_user(user_id):
         result["_links"] = generate_user_hypermedia_links(user_id=user_id)
     return jsonify(result), status_code
 
-
-@user_bp.route("/<uuid:user_id>", methods=["DELETE"])
+@user_bp.route("/<user_id>", methods=["DELETE"])
 @jwt_required()
 def delete_user(user_id):
     """
@@ -142,13 +131,9 @@ def delete_user(user_id):
     """
     current_user_id = get_jwt_identity()
     result, status_code = UserService.delete_user(user_id, current_user_id)
-
     if status_code == 200:
-        # After successful deletion, provide navigation links to collection
         result["_links"] = generate_user_hypermedia_links()
-
     return jsonify(result), status_code
-
 
 @user_bp.route("/", methods=["GET"])
 @cache.cached(timeout=200, key_prefix="all_users")
@@ -160,14 +145,10 @@ def fetch_users():
         JSON response containing a list of all users and hypermedia controls.
     """
     result, status_code = UserService.get_all_users()
-
-    # Format the response with hypermedia links
     response = {
         "users": [],
         "_links": generate_user_hypermedia_links()
     }
-    
-    # Add individual user links
     if isinstance(result, list):
         for user in result:
             if isinstance(user, dict) and "id" in user:
@@ -178,5 +159,4 @@ def fetch_users():
                 response["users"].append(user)
     else:
         response["users"] = result
-
     return jsonify(response), status_code

@@ -8,7 +8,6 @@ from utils.error_handlers import handle_error, handle_exception
 from utils.hypermedia.project_hypermedia import add_project_hypermedia_links, generate_projects_collection_links
 from validators.validators import validate_json
 
-# Define the Blueprint
 project_bp = Blueprint("project_routes", __name__, url_prefix="/projects")
 
 @project_bp.route("/", methods=["POST"])
@@ -25,7 +24,6 @@ def create_project():
         new_project = ProjectService.create_project(data)
         cache_key = f"projects_{current_user_id}"
         cache.delete(cache_key)
-        # Convert to dict and add hypermedia links
         project_dict = new_project.to_dict()
         project_dict = add_project_hypermedia_links(project_dict)
         return jsonify(project_dict), 201
@@ -50,7 +48,6 @@ def get_project(project_id):
         project = ProjectService.get_project(project_id)
         if not project:
             return handle_error("Project not found", 404)
-        # Convert to dict and add hypermedia links
         project_dict = project.to_dict()
         project_dict = add_project_hypermedia_links(project_dict)
         return jsonify(project_dict), 200
@@ -74,10 +71,8 @@ def update_project(project_id):
         updated_project = ProjectService.update_project(project, data)
         cache_key = f"project_{current_user_id}_{project_id}"
         cache.delete(cache_key)
-        # Also invalidate the all projects cache
         all_projects_cache_key = f"projects_{current_user_id}"
         cache.delete(all_projects_cache_key)
-        # Convert to dict and add hypermedia links
         project_dict = updated_project.to_dict()
         project_dict = add_project_hypermedia_links(project_dict)
         return jsonify(project_dict), 200
@@ -99,12 +94,10 @@ def delete_project(project_id):
         if not project:
             return handle_error("Project not found", 404)
         ProjectService.delete_project(project)
-        # Invalidate related caches
         project_cache_key = f"project_{current_user_id}_{project_id}"
         cache.delete(project_cache_key)
         all_projects_cache_key = f"projects_{current_user_id}"
         cache.delete(all_projects_cache_key)
-        # Generate navigation links after deletion
         response = {
             "message": "Project deleted successfully",
             "_links": generate_projects_collection_links()
@@ -124,7 +117,6 @@ def get_all_projects():
         if not current_user:
             return handle_error("Current user not found", 404)
         projects = ProjectService.fetch_all_projects()
-        # Structure the response with hypermedia
         if isinstance(projects, list):
             response = {
                 "projects": [],

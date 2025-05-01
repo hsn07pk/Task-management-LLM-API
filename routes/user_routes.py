@@ -5,43 +5,12 @@ from schemas.schemas import USER_SCHEMA, USER_UPDATE_SCHEMA
 from services.user_services import UserService
 from utils.hypermedia.link_builder import build_standard_links
 from validators.validators import validate_json
+from utils.hypermedia.user_hypermedia import generate_user_hypermedia_links
+
 
 user_bp = Blueprint(
     "user_routes", __name__, url_prefix="/users"
 )
-def generate_user_hypermedia_links(user_id=None):
-    """
-    Generate hypermedia links for user resources.
-    Args:
-        user_id (str, optional): The ID of the specific user
-    Returns:
-        dict: A dictionary of links
-    """
-    links = build_standard_links("user", user_id)
-    # Add user-specific links
-    if user_id:
-        user_specific = {
-            "update": {
-                "href": url_for("user_routes.update_user", user_id=user_id, _external=True),
-                "method": "PUT",
-                "schema": "/schemas/user-update.json"
-            },
-            "delete": {
-                "href": url_for("user_routes.delete_user", user_id=user_id, _external=True),
-                "method": "DELETE"
-            }
-        }
-        links.update(user_specific)
-    else:
-        collection_links = {
-            "create": {
-                "href": url_for("user_routes.create_user", _external=True),
-                "method": "POST",
-                "schema": "/schemas/user.json"
-            }
-        }
-        links.update(collection_links)
-    return links
 
 @user_bp.route("/", methods=["POST"])
 @validate_json(USER_SCHEMA)

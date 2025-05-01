@@ -1,5 +1,6 @@
 from flask import url_for
 from utils.hypermedia.link_builder import build_standard_links
+from schemas.schemas import PROJECT_SCHEMA, PROJECT_UPDATE_SCHEMA
 
 def add_project_hypermedia_links(project_dict):
     """
@@ -13,14 +14,12 @@ def add_project_hypermedia_links(project_dict):
         return project_dict
     project_with_links = dict(project_dict)
     project_id = str(project_dict["id"])
-    # Use our standard link builder and add project-specific links
     links = build_standard_links("project", project_id)
-    # Add project-specific links
     project_specific = {
         "update": {
             "href": url_for("project_routes.update_project", project_id=project_id, _external=True),
             "method": "PUT",
-            "schema": "/schemas/project-update.json"
+            "schema": PROJECT_UPDATE_SCHEMA
         },
         "delete": {
             "href": url_for("project_routes.delete_project", project_id=project_id, _external=True),
@@ -42,12 +41,11 @@ def generate_projects_collection_links():
         dict: A dictionary of links for the projects collection
     """
     links = build_standard_links("project")
-    # Add collection-specific links
     collection_links = {
         "create": {
             "href": url_for("project_routes.create_project", _external=True),
             "method": "POST",
-            "schema": "/schemas/project.json"
+            "schema": PROJECT_SCHEMA
         }
     }
     links.update(collection_links)

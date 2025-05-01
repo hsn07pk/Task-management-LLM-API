@@ -3,133 +3,11 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from extentions.extensions import cache
 from schemas.schemas import TEAM_MEMBERSHIP_SCHEMA, TEAM_SCHEMA, TEAM_UPDATE_SCHEMA
 from services.team_services import TeamService
-from utils.hypermedia.link_builder import build_standard_links
+from utils.hypermedia.team_hypermedia import generate_team_hypermedia_links, generate_team_member_links
 from validators.validators import validate_json
 
 team_bp = Blueprint("team_routes", __name__, url_prefix="/teams")
 
-def generate_team_hypermedia_links(team_id=None, members=False):
-    """
-    Generate hypermedia links for team resources.
-    
-    Args:
-        team_id (str, optional): The ID of the specific team
-        members (bool): Whether to include links to team member resources
-        
-    Returns:
-        dict: A dictionary of links
-    """
-    links = build_standard_links("team", team_id)
-    
-    # Add team-specific links
-    if team_id:
-        team_specific = {
-            "update": {
-                "href": url_for("team_routes.update_team", team_id=team_id, _external=True),
-                "method": "PUT",
-                "schema": "/schemas/team-update.json"
-            },
-            "delete": {
-                "href": url_for("team_routes.delete_team", team_id=team_id, _external=True),
-                "method": "DELETE"
-            },
-            "members": {
-                "href": url_for("team_routes.get_team_members", team_id=team_id, _external=True),
-                "method": "GET"
-            }
-        }
-        links.update(team_specific)
-        
-        # If this is a members response, add member-specific links
-        if members:
-            member_links = {
-                "add_member": {
-                    "href": url_for("team_routes.add_team_member", team_id=team_id, _external=True),
-                    "method": "POST",
-                    "schema": "/schemas/team-membership.json"
-                }
-            }
-            links.update(member_links)
-    else:
-        # Collection-specific links
-        collection_links = {
-            "create": {
-                "href": url_for("team_routes.create_team", _external=True),
-                "method": "POST",
-                "schema": "/schemas/team.json"
-            }
-        }
-        links.update(collection_links)
-    
-    return links
-
-
-def generate_team_member_links(team_id, user_id=None):
-    """
-    Generate hypermedia links for team member resources.
-    
-    Args:
-        team_id (str): The team ID
-        user_id (str, optional): The user ID of the team member
-        
-    Returns:
-        dict: A dictionary of links
-    """
-    links = {
-        "team": {
-            "href": url_for("team_routes.get_team", team_id=team_id, _external=True),
-            "method": "GET"
-        },
-        "members": {
-            "href": url_for("team_routes.get_team_members", team_id=team_id, _external=True),
-            "method": "GET"
-        },
-        "root": {
-            "href": url_for("entry_point.api_root", _external=True),
-            "method": "GET"
-        }
-    }
-    
-    # Add member-specific links if user_id is provided
-    if user_id:
-        member_specific = {
-            "update": {
-                "href": url_for(
-                    "team_routes.update_team_member", 
-                    team_id=team_id, 
-                    user_id=user_id, 
-                    _external=True
-                ),
-                "method": "PUT",
-                "schema": "/schemas/team-membership-update.json"
-            },
-            "delete": {
-                "href": url_for(
-                    "team_routes.remove_team_member", 
-                    team_id=team_id, 
-                    user_id=user_id, 
-                    _external=True
-                ),
-                "method": "DELETE"
-            },
-            "user": {
-                "href": url_for("user_routes.get_user", user_id=user_id, _external=True),
-                "method": "GET"
-            }
-        }
-        links.update(member_specific)
-    else:
-        # Collection-specific links
-        collection_links = {
-            "add_member": {
-                "href": url_for("team_routes.add_team_member", team_id=team_id, _external=True),
-                "method": "POST",
-                "schema": "/schemas/team-membership.json"
-            }
-        }
-        links.update(collection_links)
-    
-    return links
 
 
 @team_bp.route("/", methods=["GET"])
@@ -267,8 +145,6 @@ def delete_team(team_id):
         result["_links"] = generate_team_hypermedia_links()
     return jsonify(result), status_code
 
-# ------------------ TEAM MEMBERSHIP ROUTES ------------------
-
 @team_bp.route("/<team_id>/members", methods=["POST"])
 @jwt_required()
 @validate_json(TEAM_MEMBERSHIP_SCHEMA)
@@ -303,7 +179,7 @@ def add_team_member(team_id):
 
 @team_bp.route("/<team_id>/members/<user_id>", methods=["PUT"])
 @jwt_required()
-@validate_json({"type": "object", "properties": {"role": {"type": "string"}}, "required": ["role"]})
+@validate_json(TEAM_MEMBERSHIP_SCHEMA)
 def update_team_member(team_id, user_id):
     """
     Updates the role of a member in a team.
@@ -325,7 +201,7 @@ def update_team_member(team_id, user_id):
     team_id_str = str(team_id)
     cache_key = f"team_member_{current_user_id}_{team_id_str}"
     cache.delete(cache_key)
-    if status_code == 200 and isinstance(result, dict):
+    if status_code == 200 and isinstance(result, dict) and "user_id" in data:
         user_id_str = str(user_id)
         result["_links"] = generate_team_member_links(team_id_str, user_id_str)
     return jsonify(result), status_code
@@ -360,7 +236,7 @@ def remove_team_member(team_id, user_id):
 @jwt_required()
 @cache.cached(
     timeout=300,
-    key_prefix=lambda: f"team_member_{get_jwt_identity()}_{request.view_args['team_id']}",
+    key_prefix=lambda: f"team_member_{get_jwt_identity()}_{request.view_args['team_id']}"
 )
 def get_team_members(team_id):
     """

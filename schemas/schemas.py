@@ -1,108 +1,113 @@
-"""
-schemas.py
+# schemas/schemas.py
 
-Defines JSON schemas for validation of API resources: Task, Team, Team Membership, Project, and User.
-"""
-
-# TASK_SCHEMA: Defines the schema for a task object.
-TASK_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "title": {"type": "string", "minLength": 1},  # Title must be a non-empty string
-        "project_id": {"type": "string", "format": "uuid"},  # Project ID must be in UUID format
-        "status": {
-            "type": "string",
-            "enum": ["pending", "in_progress", "completed"],  # Allowed status values
-        },
-    },
-    "required": ["title", "project_id", "status"],  # All three fields are required
-}
-
-# TEAM_SCHEMA: Defines the schema for a team object.
-TEAM_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "name": {"type": "string", "minLength": 1},  # Team name must be a non-empty string
-        "lead_id": {"type": "string", "format": "uuid"},  # Lead ID must be in UUID format
-        "description": {
-            "type": "string",
-            "minLength": 1,  # Ensure description is at least one character
-        },
-    },
-    "required": ["name", "lead_id"],  # Name and lead_id are mandatory
-}
-
-# TEAM_UPDATE_SCHEMA: Defines the schema for updating a team object.
-TEAM_UPDATE_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "name": {"type": "string", "minLength": 1},
-        "lead_id": {"type": "string", "format": "uuid"},
-        "description": {"type": "string", "minLength": 1},
-    },
-    # No "required" field for partial updates
-}
-
-# TEAM_MEMBERSHIP_SCHEMA: Defines the schema for a team membership object.
-TEAM_MEMBERSHIP_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "user_id": {"type": "string", "format": "uuid"},  # User ID must be in UUID format
-        "role": {"type": "string", "minLength": 1},  # Role must be a non-empty string
-    },
-    "required": ["user_id", "role"],  # user_id and role are mandatory fields
-}
-
-# PROJECT_SCHEMA: Defines the schema for a project object.
-PROJECT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "title": {"type": "string", "minLength": 1},  # Project title must be a non-empty string
-        "description": {
-            "type": "string",
-            "minLength": 1,  # Ensure description is at least one character
-        },
-        "team_id": {"type": "string", "format": "uuid"},  # Team ID must be in UUID format
-        "category_id": {"type": "string", "format": "uuid"},  # Category ID must be in UUID format
-    },
-    "required": ["title", "team_id"],  # Required fields
-}
-
-# PROJECT_UPDATE_SCHEMA: Defines the schema for updating a project object.
-PROJECT_UPDATE_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "title": {"type": "string", "minLength": 1},
-        "description": {"type": "string", "minLength": 1},
-        "team_id": {"type": "string", "format": "uuid"},
-        "category_id": {"type": "string", "format": "uuid"},
-    },
-    # No "required" field for partial updates
-}
-
-# USER_SCHEMA: Defines the schema for a user object.
 USER_SCHEMA = {
     "type": "object",
     "properties": {
-        "username": {"type": "string", "minLength": 1},  # Username must be a non-empty string
-        "email": {"type": "string", "format": "email"},  # Email must be in valid email format
-        "password": {
-            "type": "string",
-            "minLength": 8,  # Password must be at least 8 characters long
-        },
-        "role": {"type": "string", "enum": ["admin", "member"]},  # Allowed role values
+        "username": {"type": "string", "minLength": 3, "maxLength": 32},
+        "email": {"type": "string", "format": "email"},
+        "password": {"type": "string", "minLength": 6},
+        "role": {"type": "string", "enum": ["admin", "member"], "default": "member"}
     },
-    "required": ["username", "email", "password", "role"],  # Required fields
+    "required": ["username", "email", "password"],
+    "additionalProperties": False
 }
 
-# USER_UPDATE_SCHEMA: Defines the schema to update a user object.
 USER_UPDATE_SCHEMA = {
     "type": "object",
     "properties": {
-        "username": {"type": "string", "minLength": 1},
+        "username": {"type": "string", "minLength": 3, "maxLength": 32},
         "email": {"type": "string", "format": "email"},
-        "password": {"type": "string", "minLength": 8},
-        "role": {"type": "string", "enum": ["admin", "member"]},
+        "password": {"type": "string", "minLength": 6},
+        "role": {"type": "string", "enum": ["admin", "member"]}
     },
-    # No "required" field for updates
+    "minProperties": 1,
+    "additionalProperties": False
+}
+
+PROJECT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "string", "minLength": 1, "maxLength": 100},
+        "description": {"type": "string"},
+        "start_date": {"type": "string", "format": "date"},
+        "end_date": {"type": "string", "format": "date"},
+        "status": {"type": "string", "enum": ["active", "completed", "archived"], "default": "active"}
+    },
+    "required": ["name"],
+    "additionalProperties": False
+}
+
+PROJECT_UPDATE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "string", "minLength": 1, "maxLength": 100},
+        "description": {"type": "string"},
+        "start_date": {"type": "string", "format": "date"},
+        "end_date": {"type": "string", "format": "date"},
+        "status": {"type": "string", "enum": ["active", "completed", "archived"]}
+    },
+    "minProperties": 1,
+    "additionalProperties": False
+}
+
+TASK_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "title": {"type": "string", "minLength": 1, "maxLength": 100},
+        "description": {"type": "string"},
+        "project_id": {"type": "string"},
+        "assignee_id": {"type": "string"},
+        "status": {"type": "string", "enum": ["pending", "in_progress", "completed", "archived"], "default": "pending"},
+        "priority": {"type": "integer", "minimum": 1, "maximum": 5, "default": 3},
+        "due_date": {"type": "string", "format": "date"}
+    },
+    "required": ["title", "project_id"],
+    "additionalProperties": False
+}
+
+TASK_UPDATE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "title": {"type": "string", "minLength": 1, "maxLength": 100},
+        "description": {"type": "string"},
+        "project_id": {"type": "string"},
+        "assignee_id": {"type": "string"},
+        "status": {"type": "string", "enum": ["pending", "in_progress", "completed", "archived"]},
+        "priority": {"type": "integer", "minimum": 1, "maximum": 5},
+        "due_date": {"type": "string", "format": "date"}
+    },
+    "minProperties": 1,
+    "additionalProperties": False
+}
+
+TEAM_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "string", "minLength": 1, "maxLength": 100},
+        "description": {"type": "string"},
+        "lead_id": {"type": "string"}
+    },
+    "required": ["name", "lead_id"],
+    "additionalProperties": False
+}
+
+TEAM_UPDATE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "string", "minLength": 1, "maxLength": 100},
+        "description": {"type": "string"},
+        "lead_id": {"type": "string"}
+    },
+    "minProperties": 1,
+    "additionalProperties": False
+}
+
+TEAM_MEMBERSHIP_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "user_id": {"type": "string"},
+        "role": {"type": "string", "enum": ["member", "lead", "admin"]}
+    },
+    "required": ["user_id", "role"],
+    "additionalProperties": False
 }

@@ -2,7 +2,7 @@
 from datetime import timedelta
 
 from flasgger import Swagger
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, url_for
 from flask_jwt_extended import (
     JWTManager,
     create_access_token,
@@ -199,4 +199,4 @@ if __name__ == "__main__":
     in debug mode for testing and development.
     """
     app = create_app()
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=True)

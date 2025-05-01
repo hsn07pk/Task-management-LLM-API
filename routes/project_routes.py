@@ -116,11 +116,12 @@ def delete_project(project_id):
     except Exception as e:
         return handle_exception(e)
 
+
 @project_bp.route("/", methods=["GET"])
 @jwt_required()
 @cache.cached(timeout=300, key_prefix=lambda: f"projects_{get_jwt_identity()}")
 def get_all_projects():
-    """Fetch all projects with hypermedia links."""
+    """Fetch all projects."""
     try:
         current_user_id = get_jwt_identity()
         current_user = User.query.get(current_user_id)
@@ -129,21 +130,21 @@ def get_all_projects():
 
         projects = ProjectService.fetch_all_projects()
 
-        # Structure the response with hypermedia
+        # Structure the response with hypermedia at collection level only
         response = {
             "projects": [],
             "_links": generate_projects_collection_links()
         }
 
+        # Add projects to the response without individual hypermedia links
         for project in projects:
             if hasattr(project, 'to_dict'):
-                project_dict = project.to_dict()
+                response["projects"].append(project.to_dict())
             elif isinstance(project, dict):
-                project_dict = project
+                response["projects"].append(project)
             else:
-                continue  # Skip if not a dict or model
-
-            response["projects"].append(add_project_hypermedia_links(project_dict))
+                # Skip or handle unexpected types
+                continue
 
         return jsonify(response), 200
     except Exception as e:

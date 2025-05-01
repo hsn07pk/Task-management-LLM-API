@@ -1,113 +1,126 @@
-# schemas/schemas.py
+"""
+JSON schemas for request validation in the Flask API.
+These schemas are used by the validation decorators to ensure 
+that incoming request data is properly formatted and contains
+all required fields.
+"""
 
+# User schemas
 USER_SCHEMA = {
     "type": "object",
     "properties": {
-        "username": {"type": "string", "minLength": 3, "maxLength": 32},
-        "email": {"type": "string", "format": "email"},
-        "password": {"type": "string", "minLength": 6},
-        "role": {"type": "string", "enum": ["admin", "member"], "default": "member"}
+        "username": {"type": "string", "minLength": 3, "maxLength": 50},
+        "email": {"type": "string", "format": "email", "maxLength": 100},
+        "password": {"type": "string", "minLength": 8, "maxLength": 100},
+        "full_name": {"type": "string", "maxLength": 100},
+        "role": {"type": "string", "enum": ["admin", "member"]},
     },
     "required": ["username", "email", "password"],
-    "additionalProperties": False
+    "additionalProperties": False,
 }
 
 USER_UPDATE_SCHEMA = {
     "type": "object",
     "properties": {
-        "username": {"type": "string", "minLength": 3, "maxLength": 32},
-        "email": {"type": "string", "format": "email"},
-        "password": {"type": "string", "minLength": 6},
-        "role": {"type": "string", "enum": ["admin", "member"]}
+        "username": {"type": "string", "minLength": 3, "maxLength": 50},
+        "email": {"type": "string", "format": "email", "maxLength": 100},
+        "password": {"type": "string", "minLength": 8, "maxLength": 100},
+        "full_name": {"type": "string", "maxLength": 100},
+        "role": {"type": "string", "enum": ["admin", "member"]},
     },
-    "minProperties": 1,
-    "additionalProperties": False
+    "additionalProperties": False,
 }
 
+# Project schemas
 PROJECT_SCHEMA = {
     "type": "object",
     "properties": {
-        "name": {"type": "string", "minLength": 1, "maxLength": 100},
-        "description": {"type": "string"},
+        "title": {"type": "string", "minLength": 3, "maxLength": 100},
+        "description": {"type": "string", "maxLength": 500},
         "start_date": {"type": "string", "format": "date"},
         "end_date": {"type": "string", "format": "date"},
-        "status": {"type": "string", "enum": ["active", "completed", "archived"], "default": "active"}
+        "status": {"type": "string", "enum": ["planning", "active", "completed", "on_hold", "cancelled"]},
+        "priority": {"type": "integer", "minimum": 1, "maximum": 5},
+        "team_id": {"type": "string", "format": "uuid"},
+        "owner_id": {"type": "string", "format": "uuid"},
     },
-    "required": ["name"],
-    "additionalProperties": False
+    "required": ["title", "status", "priority"],
+    "additionalProperties": False,
 }
 
 PROJECT_UPDATE_SCHEMA = {
     "type": "object",
     "properties": {
-        "name": {"type": "string", "minLength": 1, "maxLength": 100},
-        "description": {"type": "string"},
+        "title": {"type": "string", "minLength": 3, "maxLength": 100},
+        "description": {"type": "string", "maxLength": 500},
         "start_date": {"type": "string", "format": "date"},
         "end_date": {"type": "string", "format": "date"},
-        "status": {"type": "string", "enum": ["active", "completed", "archived"]}
+        "status": {"type": "string", "enum": ["planning", "active", "completed", "on_hold", "cancelled"]},
+        "priority": {"type": "integer", "minimum": 1, "maximum": 5},
+        "team_id": {"type": "string", "format": "uuid"},
+        "owner_id": {"type": "string", "format": "uuid"},
     },
-    "minProperties": 1,
-    "additionalProperties": False
+    "additionalProperties": False,
 }
 
+# Task schemas
 TASK_SCHEMA = {
     "type": "object",
     "properties": {
-        "title": {"type": "string", "minLength": 1, "maxLength": 100},
-        "description": {"type": "string"},
-        "project_id": {"type": "string"},
-        "assignee_id": {"type": "string"},
-        "status": {"type": "string", "enum": ["pending", "in_progress", "completed", "archived"], "default": "pending"},
-        "priority": {"type": "integer", "minimum": 1, "maximum": 5, "default": 3},
-        "due_date": {"type": "string", "format": "date"}
+        "title": {"type": "string", "minLength": 3, "maxLength": 100},
+        "description": {"type": "string", "maxLength": 500},
+        "status": {"type": "string", "enum": ['pending', 'in_progress', 'completed']},
+        "priority": {"type": "integer", "minimum": 1, "maximum": 5},
+        "due_date": {"type": "string", "format": "date"},
+        "project_id": {"type": "string", "format": "uuid"},
+        "assignee_id": {"type": "string", "format": "uuid"},
     },
-    "required": ["title", "project_id"],
-    "additionalProperties": False
+    "required": ["title", "status", "priority", "project_id"],
+    "additionalProperties": False,
 }
 
 TASK_UPDATE_SCHEMA = {
     "type": "object",
     "properties": {
-        "title": {"type": "string", "minLength": 1, "maxLength": 100},
-        "description": {"type": "string"},
-        "project_id": {"type": "string"},
-        "assignee_id": {"type": "string"},
-        "status": {"type": "string", "enum": ["pending", "in_progress", "completed", "archived"]},
+        "title": {"type": "string", "minLength": 3, "maxLength": 100},
+        "description": {"type": "string", "maxLength": 500},
+        "status": {"type": "string", "enum": ['pending', 'in_progress', 'completed']},
         "priority": {"type": "integer", "minimum": 1, "maximum": 5},
-        "due_date": {"type": "string", "format": "date"}
+        "due_date": {"type": "string", "format": "date"},
+        "project_id": {"type": "string", "format": "uuid"},
+        "assignee_id": {"type": "string", "format": "uuid"},
     },
-    "minProperties": 1,
-    "additionalProperties": False
+    "additionalProperties": False,
 }
 
+# Team schemas
 TEAM_SCHEMA = {
     "type": "object",
     "properties": {
-        "name": {"type": "string", "minLength": 1, "maxLength": 100},
-        "description": {"type": "string"},
-        "lead_id": {"type": "string"}
+        "name": {"type": "string", "minLength": 3, "maxLength": 100},
+        "description": {"type": "string", "maxLength": 500},
+        "lead_id": {"type": "string", "format": "uuid"},
     },
     "required": ["name", "lead_id"],
-    "additionalProperties": False
+    "additionalProperties": False,
 }
 
 TEAM_UPDATE_SCHEMA = {
     "type": "object",
     "properties": {
-        "name": {"type": "string", "minLength": 1, "maxLength": 100},
-        "description": {"type": "string"},
-        "lead_id": {"type": "string"}
+        "name": {"type": "string", "minLength": 3, "maxLength": 100},
+        "description": {"type": "string", "maxLength": 500},
+        "lead_id": {"type": "string", "format": "uuid"},
     },
-    "minProperties": 1,
-    "additionalProperties": False
+    "additionalProperties": False,
 }
 
 TEAM_MEMBERSHIP_SCHEMA = {
     "type": "object",
     "properties": {
-        "user_id": {"type": "string"},
-        "role": {"type": "string", "enum": ["member", "lead", "admin"]}
+        "user_id": {"type": "string", "format": "uuid"},
+        "role": {"type": "string", "enum": ["lead", "developer", "tester", "designer", "product_manager"]},
     },
     "required": ["user_id", "role"],
-    "additionalProperties": False
+    "additionalProperties": False,
 }

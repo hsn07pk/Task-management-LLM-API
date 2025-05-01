@@ -34,9 +34,11 @@ def add_project_hypermedia_links(project_dict):
     project_with_links["_links"] = links
     return project_with_links
 
-def generate_projects_collection_links():
+def generate_projects_collection_links(filters=None):
     """
     Generate links for the projects collection resource.
+    Args:
+        filters (dict, optional): Any filters applied to the collection
     Returns:
         dict: A dictionary of links for the projects collection
     """
@@ -49,4 +51,22 @@ def generate_projects_collection_links():
         }
     }
     links.update(collection_links)
+    
+    # Add filter links if filters are provided
+    if filters:
+        for key, value in filters.items():
+            if value is not None:
+                new_filters = {k: v for k, v in filters.items() if k != key and v is not None}
+                filter_name = f"clear_{key}_filter"
+                if new_filters:
+                    links[filter_name] = {
+                        "href": url_for("project_routes.get_all_projects", **new_filters, _external=True),
+                        "method": "GET"
+                    }
+                else:
+                    links[filter_name] = {
+                        "href": url_for("project_routes.get_all_projects", _external=True),
+                        "method": "GET"
+                    }
+    
     return links

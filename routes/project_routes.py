@@ -11,8 +11,34 @@ from utils.hypermedia.project_hypermedia import (
 )
 from validators.validators import validate_json
 
-# Define the Blueprint
 project_bp = Blueprint("project_routes", __name__, url_prefix="/projects")
+
+@project_bp.errorhandler(400)
+def bad_request(error):
+    response = {
+        "error": "Bad Request", 
+        "message": str(error),
+        "_links": generate_projects_collection_links()
+    }
+    return jsonify(response), 400
+
+@project_bp.errorhandler(404)
+def not_found(error):
+    response = {
+        "error": "Not Found", 
+        "message": str(error),
+        "_links": generate_projects_collection_links()
+    }
+    return jsonify(response), 404
+
+@project_bp.errorhandler(500)
+def internal_error(error):
+    response = {
+        "error": "Internal Server Error", 
+        "message": str(error),
+        "_links": generate_projects_collection_links()
+    }
+    return jsonify(response), 500
 
 @project_bp.route("/", methods=["POST"])
 @jwt_required()
@@ -35,9 +61,19 @@ def create_project():
         project_dict = add_project_hypermedia_links(new_project.to_dict())
         return jsonify(project_dict), 201
     except ValueError as e:
-        return handle_error(str(e), 400)
+        response = {
+            "error": "Invalid data", 
+            "message": str(e),
+            "_links": generate_projects_collection_links()
+        }
+        return jsonify(response), 400
     except Exception as e:
-        return handle_exception(e)
+        response = {
+            "error": "Internal server error", 
+            "message": str(e),
+            "_links": generate_projects_collection_links()
+        }
+        return jsonify(response), 500
 
 @project_bp.route("/<project_id>", methods=["GET"])
 @jwt_required()
@@ -57,7 +93,12 @@ def get_project(project_id):
         project_dict = add_project_hypermedia_links(project.to_dict())
         return jsonify(project_dict), 200
     except Exception as e:
-        return handle_exception(e)
+        response = {
+            "error": "Internal server error", 
+            "message": str(e),
+            "_links": generate_projects_collection_links()
+        }
+        return jsonify(response), 500
 
 @project_bp.route("/<project_id>", methods=["PUT"])
 @jwt_required()
@@ -72,8 +113,12 @@ def update_project(project_id):
 
         project = ProjectService.get_project(project_id)
         if not project:
-            return handle_error("Project not found", 404)
-
+            response = {
+                "error": "Not found", 
+                "message": "Project not found",
+                "_links": generate_projects_collection_links()
+            }
+            return jsonify(response), 404
         data = request.get_json()
         updated_project = ProjectService.update_project(project, data)
 
@@ -82,11 +127,27 @@ def update_project(project_id):
         cache.delete(f"projects_{current_user_id}")
 
         project_dict = add_project_hypermedia_links(updated_project.to_dict())
+        cache_key = f"project_{current_user_id}_{project_id}"
+        cache.delete(cache_key)
+        all_projects_cache_key = f"projects_{current_user_id}"
+        cache.delete(all_projects_cache_key)
+        project_dict = updated_project.to_dict()
+        project_dict = add_project_hypermedia_links(project_dict)
         return jsonify(project_dict), 200
     except ValueError as e:
-        return handle_error(str(e), 400)
+        response = {
+            "error": "Invalid data", 
+            "message": str(e),
+            "_links": generate_projects_collection_links()
+        }
+        return jsonify(response), 400
     except Exception as e:
-        return handle_exception(e)
+        response = {
+            "error": "Internal server error", 
+            "message": str(e),
+            "_links": generate_projects_collection_links()
+        }
+        return jsonify(response), 500
 
 @project_bp.route("/<project_id>", methods=["DELETE"])
 @jwt_required()
@@ -103,18 +164,22 @@ def delete_project(project_id):
             return handle_error("Project not found", 404)
 
         ProjectService.delete_project(project)
-
-        # Invalidate caches
-        cache.delete(f"project_{current_user_id}_{project_id}")
-        cache.delete(f"projects_{current_user_id}")
-
+        project_cache_key = f"project_{current_user_id}_{project_id}"
+        cache.delete(project_cache_key)
+        all_projects_cache_key = f"projects_{current_user_id}"
+        cache.delete(all_projects_cache_key)
         response = {
             "message": "Project deleted successfully",
             "_links": generate_projects_collection_links()
         }
         return jsonify(response), 200
     except Exception as e:
-        return handle_exception(e)
+        response = {
+            "error": "Internal server error", 
+            "message": str(e),
+            "_links": generate_projects_collection_links()
+        }
+        return jsonify(response), 500
 
 
 @project_bp.route("/", methods=["GET"])

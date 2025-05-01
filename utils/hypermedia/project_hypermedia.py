@@ -146,8 +146,6 @@ def add_project_hypermedia_links(project_dict):
     """
     if not project_dict or not isinstance(project_dict, dict):
         return project_dict
-    
-    # Create a deep copy of the project to avoid modifying the original
     project_with_links = dict(project_dict)
     
     # Build the links
@@ -162,7 +160,8 @@ def add_project_hypermedia_links(project_dict):
 def generate_projects_collection_links():
     """
     Generate links for the projects collection resource.
-    
+    Args:
+        filters (dict, optional): Any filters applied to the collection
     Returns:
         dict: A dictionary of links for the projects collection
     """

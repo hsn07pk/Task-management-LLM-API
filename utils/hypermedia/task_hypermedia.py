@@ -1,5 +1,6 @@
 from flask import url_for
 from utils.hypermedia.link_builder import build_standard_links
+from schemas.schemas import TASK_SCHEMA, TASK_UPDATE_SCHEMA
 
 def add_task_hypermedia_links(task_dict):
     """
@@ -14,12 +15,11 @@ def add_task_hypermedia_links(task_dict):
     task_with_links = dict(task_dict)
     task_id = str(task_dict["id"])
     links = build_standard_links("task", task_id)
-    # Add task-specific links
     task_specific = {
         "update": {
             "href": url_for("task_routes.task_operations", task_id=task_id, _external=True),
             "method": "PUT",
-            "schema": "/schemas/task-update.json"
+            "schema": TASK_UPDATE_SCHEMA
         },
         "delete": {
             "href": url_for("task_routes.task_operations", task_id=task_id, _external=True),
@@ -27,7 +27,6 @@ def add_task_hypermedia_links(task_dict):
         }
     }
     links.update(task_specific)
-    # Add project and assignee links if applicable
     if "project_id" in task_dict and task_dict["project_id"]:
         project_id = str(task_dict["project_id"])
         links["project"] = {
@@ -52,16 +51,14 @@ def generate_tasks_collection_links(filters=None):
         dict: A dictionary of links for the tasks collection
     """
     links = build_standard_links("task")
-    # Add collection-specific links
     collection_links = {
         "create": {
             "href": url_for("task_routes.create_task", _external=True),
             "method": "POST",
-            "schema": "/schemas/task.json"
+            "schema": TASK_SCHEMA
         }
     }
     links.update(collection_links)
-    # Add filtered view links if filters are provided
     if filters:
         for key, value in filters.items():
             if value is not None:

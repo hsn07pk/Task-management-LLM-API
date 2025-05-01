@@ -104,13 +104,18 @@ def get_tasks():
                 return jsonify({"error": "Invalid priority value"}), 400
         filters = {k: v for k, v in filters.items() if v is not None}
         tasks = TaskService.get_tasks(filters)
-        if not isinstance(tasks, list):
-            response = tasks
+        
+        response = {
+            "tasks": [],
+            "_links": generate_tasks_collection_links(filters)
+        }
+        
+        if isinstance(tasks, list):
+            response["tasks"] = [add_task_hypermedia_links(task) for task in tasks if isinstance(task, dict) and "id" in task]
         else:
-            response = {
-                "tasks": [add_task_hypermedia_links(task) for task in tasks],
-                "_links": generate_tasks_collection_links(filters)
-            }
+            # Handle edge case where tasks might not be a list
+            response["error"] = "Unexpected response format"
+            
         return jsonify(response), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400

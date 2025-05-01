@@ -1,3 +1,9 @@
+"""
+schemas.py
+
+Defines JSON schemas for validation of API resources: Task, Team, Team Membership, Project, and User.
+"""
+
 # TASK_SCHEMA: Defines the schema for a task object.
 TASK_SCHEMA = {
     "type": "object",
@@ -26,6 +32,7 @@ TEAM_SCHEMA = {
     "required": ["name", "lead_id"],  # Name and lead_id are mandatory
 }
 
+# TEAM_UPDATE_SCHEMA: Defines the schema for updating a team object.
 TEAM_UPDATE_SCHEMA = {
     "type": "object",
     "properties": {
@@ -33,8 +40,8 @@ TEAM_UPDATE_SCHEMA = {
         "lead_id": {"type": "string", "format": "uuid"},
         "description": {"type": "string", "minLength": 1},
     },
+    # No "required" field for partial updates
 }
-
 
 # TEAM_MEMBERSHIP_SCHEMA: Defines the schema for a team membership object.
 TEAM_MEMBERSHIP_SCHEMA = {
@@ -61,6 +68,7 @@ PROJECT_SCHEMA = {
     "required": ["title", "team_id"],  # Required fields
 }
 
+# PROJECT_UPDATE_SCHEMA: Defines the schema for updating a project object.
 PROJECT_UPDATE_SCHEMA = {
     "type": "object",
     "properties": {
@@ -69,6 +77,7 @@ PROJECT_UPDATE_SCHEMA = {
         "team_id": {"type": "string", "format": "uuid"},
         "category_id": {"type": "string", "format": "uuid"},
     },
+    # No "required" field for partial updates
 }
 
 # USER_SCHEMA: Defines the schema for a user object.
@@ -86,7 +95,7 @@ USER_SCHEMA = {
     "required": ["username", "email", "password", "role"],  # Required fields
 }
 
-# USER_SCHEMA: Defines the schema to update a user object.
+# USER_UPDATE_SCHEMA: Defines the schema to update a user object.
 USER_UPDATE_SCHEMA = {
     "type": "object",
     "properties": {

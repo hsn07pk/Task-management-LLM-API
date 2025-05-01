@@ -34,7 +34,7 @@ def create_project():
     except Exception as e:
         return handle_exception(e)
 
-@project_bp.route("/<uuid:project_id>", methods=["GET"])
+@project_bp.route("/<project_id>", methods=["GET"])
 @jwt_required()
 @cache.cached(
     timeout=300,
@@ -57,7 +57,7 @@ def get_project(project_id):
     except Exception as e:
         return handle_exception(e)
 
-@project_bp.route("/<uuid:project_id>", methods=["PUT"])
+@project_bp.route("/<project_id>", methods=["PUT"])
 @jwt_required()
 @validate_json(PROJECT_UPDATE_SCHEMA)
 def update_project(project_id):
@@ -86,7 +86,7 @@ def update_project(project_id):
     except Exception as e:
         return handle_exception(e)
 
-@project_bp.route("/<uuid:project_id>", methods=["DELETE"])
+@project_bp.route("/<project_id>", methods=["DELETE"])
 @jwt_required()
 def delete_project(project_id):
     """Deletes a project."""
@@ -104,7 +104,6 @@ def delete_project(project_id):
         cache.delete(project_cache_key)
         all_projects_cache_key = f"projects_{current_user_id}"
         cache.delete(all_projects_cache_key)
-        
         # Generate navigation links after deletion
         response = {
             "message": "Project deleted successfully",
@@ -125,26 +124,19 @@ def get_all_projects():
         if not current_user:
             return handle_error("Current user not found", 404)
         projects = ProjectService.fetch_all_projects()
-        
         # Structure the response with hypermedia
         if isinstance(projects, list):
-            # Format the response structure with all necessary links
             response = {
                 "projects": [],
                 "_links": generate_projects_collection_links()
             }
-            
-            # Add hypermedia links to each project
             for project in projects:
                 if isinstance(project, dict):
                     response["projects"].append(add_project_hypermedia_links(project))
                 else:
-                    # Handle cases where items might not be dictionaries
                     response["projects"].append(project)
         else:
-            # If not a list, maintain the original structure but add links
             response = projects
-            
         return jsonify(response), 200
     except Exception as e:
         return handle_exception(e)

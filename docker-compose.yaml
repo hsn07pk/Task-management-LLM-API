@@ -1,17 +1,59 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:latest
-    container_name: my_postgres_db
+    container_name: postgres_db
     restart: always
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: helloworld123
       POSTGRES_DB: task_management_db
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./setup.sql:/docker-entrypoint-initdb.d/setup.sql
+    networks:
+      - app_network
+
+  gunicorn:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gunicorn_app
+    restart: always
+    depends_on:
+      - postgres
+    volumes:
+      - ./:/app
+      - gunicorn_logs:/var/log/gunicorn
+      - supervisor_logs:/var/log/supervisor
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql://admin:helloworld123@postgres:5432/task_management_db
+      - JWT_SECRET_KEY=your_secure_jwt_key_here
+    networks:
+      - app_network
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx_server
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deployment/nginx:/etc/nginx/conf.d
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - gunicorn
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
 
 volumes:
   postgres_data:
+  gunicorn_logs:
+  supervisor_logs:
+  nginx_logs:

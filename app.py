@@ -1,4 +1,5 @@
 # app.py
+import os
 from datetime import timedelta
 
 from flasgger import Swagger
@@ -31,14 +32,13 @@ def create_app():
     """
     app = Flask(__name__)
     # Application configuration
-    app.config["JWT_SECRET_KEY"] = (
-        "super-secret"  # Secret key for JWT token encoding (change for production)
-    )
+    app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "super-secret")  # Secret key for JWT token encoding (change for production)
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(
         hours=1
     )  # Token expiration time set to 1 hour
     app.config["CACHE_DEFAULT_TIMEOUT"] = 300  # Cache expiry time set to 5 minutes (300 seconds)
-    app.config["SQLALCHEMY_DATABASE_URI"] = (
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+        "SQLALCHEMY_DATABASE_URI", 
         "postgresql://postgres:postgres@localhost:5432/taskmanagement"
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False

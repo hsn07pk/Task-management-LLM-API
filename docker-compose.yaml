@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-admin}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-defaultpassword}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-helloworld123}
       POSTGRES_DB: ${DB_NAME:-task_management_db} 
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -31,7 +31,7 @@ services:
       - gunicorn_logs:/var/log/gunicorn
       - supervisor_logs:/var/log/supervisor
     environment:
-      - SQLALCHEMY_DATABASE_URI=postgresql://${DB_USER:-admin}:${DB_PASSWORD:-defaultpassword}@postgres:5432/${DB_NAME:-task_management_db}
+      - SQLALCHEMY_DATABASE_URI=postgresql://${DB_USER:-admin}:${DB_PASSWORD:-helloworld123}@postgres:5432/${DB_NAME:-task_management_db}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-super-secret-key}
       - FLASK_APP=app.py
       - FLASK_ENV=${FLASK_ENV:-production}

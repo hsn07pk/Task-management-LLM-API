@@ -21,6 +21,6 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan 54.205.127.134 >> ~/.ssh/known_hosts
           
-      - name: Deploy to EC2
+      - name: Deploy to EC2 with environment setup
         run: |
-          ssh ubuntu@54.205.127.134 "if [ ! -d ~/Task-management-LLM-API ]; then git clone https://github.com/hsn07pk/Task-management-LLM-API.git ~/Task-management-LLM-API; fi && cd ~/Task-management-LLM-API && git fetch && git checkout ${GITHUB_REF_NAME} && docker-compose down && docker-compose up -d --build"
+          ssh ubuntu@54.205.127.134 "if [ ! -d ~/Task-management-LLM-API ]; then git clone https://github.com/hsn07pk/Task-management-LLM-API.git ~/Task-management-LLM-API; fi && cd ~/Task-management-LLM-API && git fetch && git checkout ${GITHUB_REF_NAME} && echo 'DB_USER=admin' > .env && echo 'DB_PASSWORD=helloworld123' >> .env && echo 'DB_NAME=task_management_db' >> .env && echo 'JWT_SECRET_KEY=your-secure-key' >> .env && echo 'FLASK_ENV=production' >> .env && docker-compose down && docker volume rm task-management-llm-api_postgres_data || true && docker-compose up -d --build"

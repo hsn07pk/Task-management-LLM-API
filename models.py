@@ -307,11 +307,9 @@ def init_db(app):
     try:
         if app.config.get("TESTING"):
             app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-        else:
-            app.config["SQLALCHEMY_DATABASE_URI"] = (
-                "postgresql://admin:helloworld123@localhost:5432/task_management_db"
-            )
-
+        # Don't override the SQLALCHEMY_DATABASE_URI if it's already set
+        # This allows the environment variable to take precedence
+        
         app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
         db.init_app(app)
 
@@ -321,6 +319,7 @@ def init_db(app):
     except Exception as e:
         print(f"Database initialization error: {str(e)}")
         return False
+
 
 
 # CRUD Functions

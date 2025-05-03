@@ -31,7 +31,6 @@ services:
       - gunicorn_logs:/var/log/gunicorn
       - supervisor_logs:/var/log/supervisor
     environment:
-      # Changed from postgres to task_management_db to match POSTGRES_DB
       - SQLALCHEMY_DATABASE_URI=postgresql://${DB_USER:-admin}:${DB_PASSWORD:-defaultpassword}@postgres:5432/${DB_NAME:-task_management_db}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-super-secret-key}
       - FLASK_APP=app.py
@@ -53,6 +52,7 @@ services:
       - "${HTTPS_PORT:-443}:443"
     volumes:
       - ./deployment/nginx:/etc/nginx/conf.d
+      - ./deployment/ssl:/etc/nginx/ssl
       - nginx_logs:/var/log/nginx
       - ./deployment/certbot/conf:/etc/letsencrypt
       - ./deployment/certbot/www:/var/www/certbot

@@ -12,13 +12,13 @@ from flask_jwt_extended import (
 )
 from werkzeug.security import check_password_hash
 
+from blueprints.entry_point import entry_bp
 from extentions.extensions import cache  # Import from extensions
 from models import User, init_db
 from routes.project_routes import project_bp
 from routes.task_routes import task_bp
 from routes.team_routes import team_bp
 from routes.user_routes import user_bp
-from blueprints.entry_point import entry_bp
 
 
 def create_app():
@@ -32,14 +32,15 @@ def create_app():
     """
     app = Flask(__name__)
     # Application configuration
-    app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "super-secret")  # Secret key for JWT token encoding (change for production)
+    app.config["JWT_SECRET_KEY"] = os.environ.get(
+        "JWT_SECRET_KEY", "super-secret"
+    )  # Secret key for JWT token encoding (change for production)
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(
         hours=1
     )  # Token expiration time set to 1 hour
     app.config["CACHE_DEFAULT_TIMEOUT"] = 300  # Cache expiry time set to 5 minutes (300 seconds)
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-        "SQLALCHEMY_DATABASE_URI", 
-        "postgresql://postgres:postgres@postgres:5432/taskmanagement"
+        "SQLALCHEMY_DATABASE_URI", "postgresql://postgres:postgres@postgres:5432/taskmanagement"
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     # Initialize JWT and Cache
@@ -67,8 +68,10 @@ def create_app():
     register_test_route(app)
     return app
 
+
 def register_auth_routes(app):
     """Register authentication-related routes with the Flask app."""
+
     @app.route("/login", methods=["POST"])
     def login():
         """
@@ -100,7 +103,7 @@ def register_auth_routes(app):
                 return jsonify({"error": "Invalid password"}), 401
             # Generate JWT token upon successful login
             access_token = create_access_token(identity=str(user.user_id))
-            
+
             # Add hypermedia links for authenticated routes
             response = {
                 "access_token": access_token,
@@ -108,18 +111,24 @@ def register_auth_routes(app):
                 "username": user.username,
                 "_links": {
                     "self": {"href": url_for("login", _external=True)},
-                    "user_profile": {"href": url_for("user_routes.get_user", user_id=user.user_id, _external=True)},
+                    "user_profile": {
+                        "href": url_for(
+                            "user_routes.get_user", user_id=user.user_id, _external=True
+                        )
+                    },
                     "tasks": {"href": url_for("task_routes.get_tasks", _external=True)},
                     "teams": {"href": url_for("team_routes.get_all_teams", _external=True)},
-                    "projects": {"href": url_for("project_routes.get_all_projects", _external=True)},
-                    "test": {"href": url_for("test_operations", _external=True)}
-                }
+                    "projects": {
+                        "href": url_for("project_routes.get_all_projects", _external=True)
+                    },
+                    "test": {"href": url_for("test_operations", _external=True)},
+                },
             }
             return jsonify(response), 200
-        
-        
+
         except Exception as e:
             return jsonify({"error": "Internal server error", "message": str(e)}), 500
+
 
 def register_error_handlers(app):
     """Register error handlers with the Flask app."""
@@ -157,7 +166,7 @@ def register_error_handlers(app):
 
 def register_test_route(app):
     """Register the test route with the Flask app."""
-    
+
     @app.route("/api/health", methods=["GET"])
     def health_check():
         """
@@ -166,7 +175,7 @@ def register_test_route(app):
         Returns:
             JSON response with status information.
         """
-        return jsonify({"status": "healthy", "timestamp": str(datetime.datetime.now())}), 200
+        return jsonify({"status": "healthy", "timestamp": str(datetime.now())}), 200
 
     @app.route("/test", methods=["GET"])
     @jwt_required()  # Ensure the user is authenticated
@@ -201,7 +210,6 @@ def register_test_route(app):
 
         except Exception as e:
             return jsonify({"error": "Internal server error", "message": str(e)}), 500
-
 
 
 if __name__ == "__main__":

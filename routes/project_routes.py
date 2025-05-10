@@ -1,5 +1,9 @@
-from flask import Blueprint, jsonify, request
+import uuid
+
+from flask import Blueprint, abort, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
+from werkzeug.exceptions import BadRequest, InternalServerError, NotFound
+
 from extentions.extensions import cache
 from models import User
 from schemas.schemas import PROJECT_SCHEMA, PROJECT_UPDATE_SCHEMA
@@ -7,7 +11,7 @@ from services.project_services import ProjectService
 from utils.error_handlers import handle_error, handle_exception
 from utils.hypermedia.project_hypermedia import (
     add_project_hypermedia_links,
-    generate_projects_collection_links
+    generate_projects_collection_links,
 )
 from validators.validators import validate_json
 
@@ -16,29 +20,32 @@ project_bp = Blueprint("project_routes", __name__, url_prefix="/projects")
 @project_bp.errorhandler(400)
 def bad_request(error):
     response = {
-        "error": "Bad Request", 
+        "error": "Bad Request",
         "message": str(error),
-        "_links": generate_projects_collection_links()
+        "_links": generate_projects_collection_links(),
     }
     return jsonify(response), 400
+
 
 @project_bp.errorhandler(404)
 def not_found(error):
     response = {
-        "error": "Not Found", 
+        "error": "Not Found",
         "message": str(error),
-        "_links": generate_projects_collection_links()
+        "_links": generate_projects_collection_links(),
     }
     return jsonify(response), 404
 
-@project_bp.errorhandler(500)
+
+@project_bp.errorhandler(Exception)
 def internal_error(error):
     response = {
-        "error": "Internal Server Error", 
+        "error": "Internal Server Error",
         "message": str(error),
-        "_links": generate_projects_collection_links()
+        "_links": generate_projects_collection_links(),
     }
     return jsonify(response), 500
+
 
 @project_bp.route("/", methods=["POST"])
 @jwt_required()

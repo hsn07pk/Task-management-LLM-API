@@ -1,14 +1,15 @@
 import json
 import os
+from unittest.mock import MagicMock, patch
+
 import pytest
+from flask_jwt_extended import JWTManager
 from sqlalchemy import text
 from werkzeug.security import generate_password_hash
-from unittest.mock import patch, MagicMock
-from flask_jwt_extended import JWTManager
 
 from app import create_app
-from models import User, db
 from extentions.extensions import cache
+from models import User, db
 
 # ------------------------ FIXTURES ------------------------
 
@@ -106,12 +107,14 @@ def auth_headers(client):
 def app_with_test_config():
     """Creates a Flask application instance with test configuration."""
     app = create_app()
-    app.config.update({
-        "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "postgresql://admin:helloworld123@localhost/task_management_db",
-        "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-        "JWT_SECRET_KEY": "test-secret-key",
-    })
+    app.config.update(
+        {
+            "TESTING": True,
+            "SQLALCHEMY_DATABASE_URI": "postgresql://admin:helloworld123@localhost/task_management_db",
+            "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+            "JWT_SECRET_KEY": "test-secret-key",
+        }
+    )
     return app
 
 
@@ -125,18 +128,23 @@ def app_without_config():
 @pytest.fixture(scope="function")
 def app_with_env_vars():
     """Creates an application instance with configured environment variables."""
-    with patch.dict(os.environ, {
-        "DATABASE_URL": "postgresql://test_admin:test_password@localhost/test_db",
-        "JWT_SECRET_KEY": "test-env-secret-key",
-        "DEBUG": "True"
-    }):
+    with patch.dict(
+        os.environ,
+        {
+            "DATABASE_URL": "postgresql://test_admin:test_password@localhost/test_db",
+            "JWT_SECRET_KEY": "test-env-secret-key",
+            "DEBUG": "True",
+        },
+    ):
         app = create_app()
         # We need to manually patch the configuration since app.py doesn't seem to use these environment variables
-        app.config.update({
-            "SQLALCHEMY_DATABASE_URI": "postgresql://test_admin:test_password@localhost/test_db",
-            "JWT_SECRET_KEY": "test-env-secret-key",
-            "DEBUG": True,
-        })
+        app.config.update(
+            {
+                "SQLALCHEMY_DATABASE_URI": "postgresql://test_admin:test_password@localhost/test_db",
+                "JWT_SECRET_KEY": "test-env-secret-key",
+                "DEBUG": True,
+            }
+        )
         return app
 
 
@@ -333,17 +341,17 @@ def test_error_handler_400(client):
 def test_error_handler_500(client):
     """
     Tests the application's behavior on an internal error.
-    
+
     Instead of mocking request.get_json which can cause problems with the context,
     we simply test accessing a non-existent route which should trigger
     the 404 error handler.
-    
+
     Args:
         client: The Flask test client used to make requests.
     """
     # Call a non-existent route to trigger an error
     response = client.get("/this-route-does-not-exist")
-    
+
     # Verify that the response is a 404 error
     assert response.status_code == 404
     # Verify that an error is returned
@@ -355,7 +363,7 @@ def test_error_handler_500(client):
 def test_test_route_invalid_user_id(client, monkeypatch):
     """
     Tests accessing the test route with an invalid user ID in the JWT token.
-    
+
     We use monkeypatch to make get_jwt_identity return a non-existent user ID.
     The application may either handle this error or return a default result.
 
@@ -371,23 +379,23 @@ def test_test_route_invalid_user_id(client, monkeypatch):
         )
         db.session.add(user)
         db.session.commit()
-        
+
         # Login and get token
         response = client.post(
             "/login", json={"email": "valid@example.com", "password": "password123"}
         )
         token = json.loads(response.data)["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
-        
+
         # Mock get_jwt_identity to return a non-existent user ID
         def mock_get_jwt_identity():
             return "00000000-0000-0000-0000-000000000000"
-        
+
         monkeypatch.setattr("flask_jwt_extended.get_jwt_identity", mock_get_jwt_identity)
-        
+
         # Make the request
         response = client.get("/test", headers=headers)
-        
+
         # Verify that the response is either a 404 error or a 200 response with a message
         if response.status_code == 404:
             assert "error" in json.loads(response.data)
@@ -401,7 +409,10 @@ def test_test_route_invalid_user_id(client, monkeypatch):
 def test_create_app_with_test_config(app_with_test_config):
     """Tests creating the application with a test configuration."""
     assert app_with_test_config.config["TESTING"] is True
-    assert app_with_test_config.config["SQLALCHEMY_DATABASE_URI"] == "postgresql://admin:helloworld123@localhost/task_management_db"
+    assert (
+        app_with_test_config.config["SQLALCHEMY_DATABASE_URI"]
+        == "postgresql://admin:helloworld123@localhost/task_management_db"
+    )
     assert app_with_test_config.config["JWT_SECRET_KEY"] == "test-secret-key"
 
 
@@ -414,7 +425,10 @@ def test_create_app_without_config(app_without_config):
 
 def test_create_app_with_env_vars(app_with_env_vars):
     """Tests creating the application with environment variables."""
-    assert app_with_env_vars.config["SQLALCHEMY_DATABASE_URI"] == "postgresql://test_admin:test_password@localhost/test_db"
+    assert (
+        app_with_env_vars.config["SQLALCHEMY_DATABASE_URI"]
+        == "postgresql://test_admin:test_password@localhost/test_db"
+    )
     assert app_with_env_vars.config["JWT_SECRET_KEY"] == "test-env-secret-key"
     assert app_with_env_vars.config["DEBUG"] is True
 
@@ -424,10 +438,10 @@ def test_extensions_initialization(app_with_test_config):
     with app_with_test_config.app_context():
         # Verify that db is initialized with the application
         assert db.get_app() == app_with_test_config
-        
+
         # Verify that the application has cache configuration
         assert "CACHE_DEFAULT_TIMEOUT" in app_with_test_config.config
-        
+
         # Verify that JWTManager is initialized
         assert "flask-jwt-extended" in app_with_test_config.extensions
 
@@ -448,7 +462,7 @@ def test_error_handlers_registration(app_with_test_config):
     # Verify that error handling functions are registered
     error_handlers = app_with_test_config.error_handler_spec[None][404]
     assert error_handlers is not None
-    
+
     error_handlers = app_with_test_config.error_handler_spec[None][500]
     assert error_handlers is not None
 
@@ -465,7 +479,7 @@ def test_jwt_extension(app_with_test_config):
     """Tests that the JWT extension is configured."""
     # Verify that the JWT extension is registered
     assert "flask-jwt-extended" in app_with_test_config.extensions
-    
+
     # Verify that the JWT extension is properly configured
     jwt_config = app_with_test_config.config
     assert "JWT_SECRET_KEY" in jwt_config
@@ -487,7 +501,21 @@ def test_debug_mode():
     app = create_app()
     # By default, debug mode is False
     assert app.config["DEBUG"] is False
-    
+
     # Manual activation of debug mode
     app.config["DEBUG"] = True
     assert app.config["DEBUG"] is True
+
+
+def test_login_missing_email(client):
+    with client.application.app_context():
+        response = client.post("/login", json={"password": "password123"})
+        assert response.status_code == 400
+        assert "Email is required" in json.loads(response.data)["error"]
+
+
+def test_healty_check(client):
+    response = client.get("api/health")
+    assert response.status_code == 200
+    assert "status" in json.loads(response.data)
+    assert json.loads(response.data)["status"] == "healthy"

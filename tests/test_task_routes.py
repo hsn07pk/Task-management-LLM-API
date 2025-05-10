@@ -6,13 +6,22 @@ import pytest
 from sqlalchemy import text
 from werkzeug.security import generate_password_hash
 
-from models import PriorityEnum, Project, StatusEnum, Task, User, db
 from app import create_app
-from models import Team, TeamMembership
-from services.team_services import TeamService
-from services.user_services import UserService
+from models import (
+    PriorityEnum,
+    Project,
+    StatusEnum,
+    Task,
+    Team,
+    TeamMembership,
+    User,
+    db,
+)
 from services.project_services import ProjectService
 from services.task_service import TaskService
+from services.team_services import TeamService
+from services.user_services import UserService
+from validators.validators import bypass_validation
 
 
 @pytest.fixture(scope="session")
@@ -39,7 +48,7 @@ def app():
     with app.app_context():
         # Create all tables
         db.create_all()
-        
+
     return app
 
 
@@ -192,13 +201,25 @@ def auth_headers(app, client, test_user):
     Fixture to generate authentication headers with JWT token for the test user.
     """
     from flask_jwt_extended import create_access_token
-    
+
     with app.app_context():
         access_token = create_access_token(identity=test_user["id"])
         return {"Authorization": f"Bearer {access_token}"}
 
 
-def test_create_task(client, test_user, test_project, auth_headers):
+@pytest.fixture(scope="function")
+def bypass_json_validation():
+    """
+    Fixture to bypass JSON validation for specific tests.
+    """
+    # Activate the bypass of validation
+    bypass_validation(True)
+    yield
+    # Reactivate validation after the test
+    bypass_validation(False)
+
+
+def test_create_task(client, test_user, test_project, auth_headers, bypass_json_validation):
     """
     Test creating a new task.
 
@@ -276,10 +297,10 @@ def test_get_all_tasks(client, test_task, auth_headers):
 def test_get_tasks_with_filters(client, auth_headers, test_user, test_project, test_task):
     """
     Test getting tasks with various filters.
-    
-    This test verifies that tasks can be filtered by various criteria such as 
+
+    This test verifies that tasks can be filtered by various criteria such as
     project_id, assignee_id, status, and priority.
-    
+
     Args:
         client (FlaskClient): The test client instance.
         auth_headers (dict): The authorization headers containing the JWT token.
@@ -288,49 +309,37 @@ def test_get_tasks_with_filters(client, auth_headers, test_user, test_project, t
         test_task (dict): A test task instance.
     """
     # Test filter by project_id
-    response = client.get(
-        f'/tasks/?project_id={test_project["id"]}',
-        headers=auth_headers
-    )
+    response = client.get(f'/tasks/?project_id={test_project["id"]}', headers=auth_headers)
     assert response.status_code == 200
     data = json.loads(response.data)
     assert isinstance(data, list)
     assert len(data) > 0
-    
+
     # Test filter by assignee_id
-    response = client.get(
-        f'/tasks/?assignee_id={test_user["id"]}',
-        headers=auth_headers
-    )
+    response = client.get(f'/tasks/?assignee_id={test_user["id"]}', headers=auth_headers)
     assert response.status_code == 200
     data = json.loads(response.data)
     assert isinstance(data, list)
     assert len(data) > 0
-    
+
     # Test filter by status
-    response = client.get(
-        f'/tasks/?status={test_task["status"]}',
-        headers=auth_headers
-    )
+    response = client.get(f'/tasks/?status={test_task["status"]}', headers=auth_headers)
     assert response.status_code == 200
     data = json.loads(response.data)
     assert isinstance(data, list)
     assert len(data) > 0
-    
+
     # Test filter by priority
-    response = client.get(
-        f'/tasks/?priority={test_task["priority"]}',
-        headers=auth_headers
-    )
+    response = client.get(f'/tasks/?priority={test_task["priority"]}', headers=auth_headers)
     assert response.status_code == 200
     data = json.loads(response.data)
     assert isinstance(data, list)
     assert len(data) > 0
-    
+
     # Test combining multiple filters
     response = client.get(
         f'/tasks/?project_id={test_project["id"]}&status={test_task["status"]}',
-        headers=auth_headers
+        headers=auth_headers,
     )
     assert response.status_code == 200
     data = json.loads(response.data)
@@ -597,7 +606,9 @@ def test_update_task_no_data(client, test_task, auth_headers):
     assert response.status_code == 400
 
 
-def test_create_task_internal_error(client, test_user, test_project, auth_headers, mocker):
+def test_create_task_internal_error(
+    client, test_user, test_project, auth_headers, mocker, bypass_json_validation
+):
     """
     Test task creation with internal server error.
 
@@ -611,8 +622,7 @@ def test_create_task_internal_error(client, test_user, test_project, auth_header
     """
     # Mock the create_task function to simulate an internal error
     mocker.patch.object(
-        TaskService, 'create_task', 
-        side_effect=Exception('Simulated internal error')
+        TaskService, "create_task", side_effect=Exception("Simulated internal error")
     )
     # complete payload
     data = {
@@ -625,56 +635,55 @@ def test_create_task_internal_error(client, test_user, test_project, auth_header
         "deadline": (datetime.utcnow() + timedelta(days=5)).isoformat(),
     }
     # Send POST request to create task
-    response = client.post('/tasks/', 
-                          json=data,
-                          headers=auth_headers)
+    response = client.post("/tasks/", json=data, headers=auth_headers)
 
     # Assert response
     assert response.status_code == 500
     error_data = json.loads(response.data)
-    assert 'error' in error_data
-    assert 'Internal server error' in error_data['error']
+    assert "error" in error_data
+    assert "Internal server error" in error_data["error"]
 
 
 def test_get_tasks_invalid_filters(client, auth_headers):
     """
     Test getting tasks with invalid filters.
-    
-    This test verifies that appropriate responses are returned when 
+
+    This test verifies that appropriate responses are returned when
     invalid filter parameters are provided.
-    
+
     Args:
         client (FlaskClient): The test client instance.
         auth_headers (dict): The authorization headers containing the JWT token.
     """
     # Non-existent project_id
     invalid_id = str(uuid.uuid4())
-    response = client.get(f'/tasks/?project_id={invalid_id}', headers=auth_headers)
+    response = client.get(f"/tasks/?project_id={invalid_id}", headers=auth_headers)
     assert response.status_code == 400
     data = json.loads(response.data)
-    assert 'error' in data
-    assert data['error'] == f"Project with ID {invalid_id} not found"
+    assert "error" in data
+    assert data["error"] == f"Project with ID {invalid_id} not found"
 
     # Non-existent assignee_id
-    response = client.get(f'/tasks/?assignee_id={invalid_id}', headers=auth_headers)
+    response = client.get(f"/tasks/?assignee_id={invalid_id}", headers=auth_headers)
     assert response.status_code == 400
     data = json.loads(response.data)
-    assert 'error' in data
-    assert data['error'] == f"User with ID {invalid_id} not found"
+    assert "error" in data
+    assert data["error"] == f"User with ID {invalid_id} not found"
 
     # Invalid status
-    response = client.get('/tasks/?status=INVALID_STATUS', headers=auth_headers)
+    response = client.get("/tasks/?status=INVALID_STATUS", headers=auth_headers)
     assert response.status_code == 400
     data = json.loads(response.data)
-    assert 'error' in data
-    assert data['error'] == "Invalid status value"
+    assert "error" in data
+    assert data["error"] == "Invalid status value"
 
     # Invalid priority
-    response = client.get('/tasks/?priority=INVALID_PRIORITY', headers=auth_headers)
-    assert response.status_code == 400 
+    response = client.get("/tasks/?priority=INVALID_PRIORITY", headers=auth_headers)
+    assert response.status_code == 400
     data = json.loads(response.data)
-    assert 'error' in data
-    assert data['error'] == "Invalid priority value"
+    assert "error" in data
+    assert data["error"] == "Invalid priority value"
+
 
 def test_task_operations_internal_error(client, auth_headers, test_task, mocker):
     """
@@ -692,42 +701,33 @@ def test_task_operations_internal_error(client, auth_headers, test_task, mocker)
     task_id = str(test_task["id"])
 
     # Test get task with internal error
-    mocker.patch.object(
-        TaskService, 'get_task',
-        side_effect=Exception('Simulated internal error')
-    )
-    response = client.get(f'/tasks/{task_id}', headers=auth_headers)
+    mocker.patch.object(TaskService, "get_task", side_effect=Exception("Simulated internal error"))
+    response = client.get(f"/tasks/{task_id}", headers=auth_headers)
     assert response.status_code == 500
     error_data = json.loads(response.data)
-    assert 'error' in error_data
-    assert 'Internal server error' in error_data['error']
+    assert "error" in error_data
+    assert "Internal server error" in error_data["error"]
 
     # Test update task with internal error
     mocker.patch.object(
-        TaskService, 'update_task', 
-        side_effect=Exception('Simulated internal error')
+        TaskService, "update_task", side_effect=Exception("Simulated internal error")
     )
-    update_data = {'title': 'Updated test task'}
-    response = client.put(
-        f'/tasks/{task_id}',
-        json=update_data,
-        headers=auth_headers
-    )
+    update_data = {"title": "Updated test task"}
+    response = client.put(f"/tasks/{task_id}", json=update_data, headers=auth_headers)
     assert response.status_code == 500
     error_data = json.loads(response.data)
-    assert 'error' in error_data
-    assert 'Internal server error' in error_data['error']
+    assert "error" in error_data
+    assert "Internal server error" in error_data["error"]
 
     # Test delete task with internal error
     mocker.patch.object(
-        TaskService, 'delete_task', 
-        side_effect=Exception('Simulated internal error')
+        TaskService, "delete_task", side_effect=Exception("Simulated internal error")
     )
-    response = client.delete(f'/tasks/{task_id}', headers=auth_headers)
+    response = client.delete(f"/tasks/{task_id}", headers=auth_headers)
     assert response.status_code == 500
     error_data = json.loads(response.data)
-    assert 'error' in error_data
-    assert 'Internal server error' in error_data['error']
+    assert "error" in error_data
+    assert "Internal server error" in error_data["error"]
 
 
 def test_get_tasks_internal_error(client, auth_headers, mocker):
@@ -743,16 +743,13 @@ def test_get_tasks_internal_error(client, auth_headers, mocker):
         mocker (pytest_mock.MockFixture): The pytest mocker fixture.
     """
     # Mock the get_tasks function to simulate an internal error
-    mocker.patch.object(
-        TaskService, 'get_tasks', 
-        side_effect=Exception('Simulated internal error')
-    )
+    mocker.patch.object(TaskService, "get_tasks", side_effect=Exception("Simulated internal error"))
 
     # Send GET request to get tasks
-    response = client.get('/tasks/', headers=auth_headers)
+    response = client.get("/tasks/", headers=auth_headers)
 
     # Assert response
     assert response.status_code == 500
     error_data = json.loads(response.data)
-    assert 'error' in error_data
-    assert 'Internal server error' in error_data['error']
+    assert "error" in error_data
+    assert "Internal server error" in error_data["error"]

@@ -4,8 +4,22 @@ from functools import wraps
 from flask import jsonify, request
 from jsonschema import ValidationError, validate
 
+_BYPASS_VALIDATION = False
 
-def validate_json(schema):
+
+def bypass_validation(bypass=True):
+    """Enable or disable JSON validation globally.
+
+    Useful for tests where validation needs to be bypassed.
+
+    Args:
+        bypass (bool): True to bypass validation, False to enable it
+    """
+    global _BYPASS_VALIDATION
+    _BYPASS_VALIDATION = bypass
+
+
+def validate_json(schema, return_errors=False):
     """
     Decorator to validate the JSON request data against a given schema.
 
@@ -16,6 +30,7 @@ def validate_json(schema):
 
     Args:
         schema (dict): The JSON schema that the request data should conform to.
+        return_errors (bool): If True, returns errors instead of raising an exception.
 
     Returns:
         function: The wrapped view function that validates the JSON request data.
@@ -57,12 +72,19 @@ def validate_json(schema):
                 Response: Either a valid response from the original view function or a
                           400 Bad Request error response in case of invalid data.
             """
+            # If validation is bypassed, call the original function directly
+            global _BYPASS_VALIDATION
+            if _BYPASS_VALIDATION:
+                return func(*args, **kwargs)
+
             try:
                 # Attempt to get the JSON data from the request
                 data = request.get_json()
 
-                # If no data is provided, return an error response
+                # If no data is provided, return an error response or errors
                 if not data:
+                    if return_errors:
+                        return "No input data provided"
                     return jsonify({"error": "No input data provided"}), 400
 
                 # Validate the JSON data against the provided schema
@@ -72,7 +94,9 @@ def validate_json(schema):
                 return func(*args, **kwargs)
 
             except ValidationError as e:
-                # If the validation fails, return a 400 Bad Request with the error message
+                # If the validation fails, return errors or a 400 Bad Request with the error message
+                if return_errors:
+                    return f"Invalid request data: {e.message}"
                 return jsonify({"error": f"Invalid request data: {e.message}"}), 400
 
         return wrapper

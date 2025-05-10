@@ -71,10 +71,16 @@ def main():
         run_command("isort --check-only --profile black .", "ISORT - Import order check")
 
         # Run Flake8 (linter)
-        run_command("flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics", "FLAKE8 (Fatal Errors)")
-        
+        run_command(
+            "flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics",
+            "FLAKE8 (Fatal Errors)",
+        )
+
         # Run Flake8 with style warnings
-        run_command("flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics", "FLAKE8 (Style Warnings)")
+        run_command(
+            "flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics",
+            "FLAKE8 (Style Warnings)",
+        )
 
         # Run Vulture to detect dead code
         run_command("vulture .", "VULTURE - Dead code detection")

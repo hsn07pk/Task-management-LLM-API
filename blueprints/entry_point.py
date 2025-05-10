@@ -1,16 +1,15 @@
-
-
 from flask import Blueprint, jsonify, url_for
 
 # Define the Blueprint
 entry_bp = Blueprint("entry_point", __name__)
+
 
 @entry_bp.route("/", methods=["GET"])
 def api_root():
     """
     Entry point for the API. Returns the available routes for unauthenticated users.
     This acts as the starting point for API exploration.
-    
+
     Returns:
         JSON response with available links
     """
@@ -25,23 +24,20 @@ def api_root():
                 "method": "POST",
                 "schema": {
                     "type": "object",
-                    "properties": {
-                        "email": {"type": "string"},
-                        "password": {"type": "string"}
-                    },
-                    "required": ["email", "password"]
-                }
+                    "properties": {"email": {"type": "string"}, "password": {"type": "string"}},
+                    "required": ["email", "password"],
+                },
             },
             "register": {
                 "href": url_for("user_routes.create_user", _external=True),
                 "templated": False,
-                "method": "POST"
+                "method": "POST",
             },
             "documentation": {
                 "href": url_for("flasgger.apidocs", _external=True),
                 "templated": False,
-                "method": "GET"
-            }
-        }
+                "method": "GET",
+            },
+        },
     }
     return jsonify(response), 200

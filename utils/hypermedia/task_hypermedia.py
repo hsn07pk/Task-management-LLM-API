@@ -1,6 +1,8 @@
 from flask import url_for
-from utils.hypermedia.link_builder import build_standard_links
+
 from schemas.schemas import TASK_SCHEMA, TASK_UPDATE_SCHEMA
+from utils.hypermedia.link_builder import build_standard_links
+
 
 def add_task_hypermedia_links(task_dict):
     """
@@ -19,28 +21,29 @@ def add_task_hypermedia_links(task_dict):
         "update": {
             "href": url_for("task_routes.task_operations", task_id=task_id, _external=True),
             "method": "PUT",
-            "schema": TASK_UPDATE_SCHEMA
+            "schema": TASK_UPDATE_SCHEMA,
         },
         "delete": {
             "href": url_for("task_routes.task_operations", task_id=task_id, _external=True),
-            "method": "DELETE"
-        }
+            "method": "DELETE",
+        },
     }
     links.update(task_specific)
     if "project_id" in task_dict and task_dict["project_id"]:
         project_id = str(task_dict["project_id"])
         links["project"] = {
             "href": url_for("project_routes.get_project", project_id=project_id, _external=True),
-            "method": "GET"
+            "method": "GET",
         }
     if "assignee_id" in task_dict and task_dict["assignee_id"]:
         assignee_id = str(task_dict["assignee_id"])
         links["assignee"] = {
             "href": url_for("user_routes.get_user", user_id=assignee_id, _external=True),
-            "method": "GET"
+            "method": "GET",
         }
     task_with_links["_links"] = links
     return task_with_links
+
 
 def generate_tasks_collection_links(filters=None):
     """
@@ -55,7 +58,7 @@ def generate_tasks_collection_links(filters=None):
         "create": {
             "href": url_for("task_routes.create_task", _external=True),
             "method": "POST",
-            "schema": TASK_SCHEMA
+            "schema": TASK_SCHEMA,
         }
     }
     links.update(collection_links)
@@ -67,11 +70,11 @@ def generate_tasks_collection_links(filters=None):
                 if new_filters:
                     links[filter_name] = {
                         "href": url_for("task_routes.get_tasks", **new_filters, _external=True),
-                        "method": "GET"
+                        "method": "GET",
                     }
                 else:
                     links[filter_name] = {
                         "href": url_for("task_routes.get_tasks", _external=True),
-                        "method": "GET"
+                        "method": "GET",
                     }
     return links

@@ -396,7 +396,9 @@ def test_remove_nonexistent_team_member(app, test_user, test_team):
         team_id = uuid.UUID(test_team["id"])
         nonexistent_member_id = uuid.uuid4()
 
-        result, status_code = TeamService.remove_team_member(user_id, team_id, nonexistent_member_id)
+        result, status_code = TeamService.remove_team_member(
+            user_id, team_id, nonexistent_member_id
+        )
 
         assert status_code == 404
         assert "error" in result
@@ -576,17 +578,17 @@ def test_add_team_member_already_exists(app, test_user, test_team, test_member):
         user_id = test_user["id"]
         team_id = uuid.UUID(test_team["id"])
         member_id = test_member["id"]
-        
+
         # First add the member to the team
         data = {
             "user_id": member_id,
             "role": "member",
         }
         TeamService.add_team_member(user_id, team_id, data)
-        
+
         # Try to add the same member again
         result, status_code = TeamService.add_team_member(user_id, team_id, data)
-        
+
         assert status_code == 400
         assert "error" in result
         assert "User is already a member of this team" in result["error"]
@@ -600,18 +602,20 @@ def test_update_team_member_missing_role(app, test_user, test_team, test_member)
         user_id = test_user["id"]
         team_id = uuid.UUID(test_team["id"])
         member_id = uuid.UUID(test_member["id"])
-        
+
         # First add the member to the team
         add_data = {
             "user_id": test_member["id"],
             "role": "member",
         }
         TeamService.add_team_member(user_id, team_id, add_data)
-        
+
         # Try to update without providing a role
         update_data = {}  # Empty data
-        result, status_code = TeamService.update_team_member(user_id, team_id, member_id, update_data)
-        
+        result, status_code = TeamService.update_team_member(
+            user_id, team_id, member_id, update_data
+        )
+
         assert status_code == 400
         assert "error" in result
         assert "No input data provided" in result["error"]
@@ -628,12 +632,14 @@ def test_internal_server_error_create_team(app, test_user, mocker):
             "description": "Will cause an error",
             "lead_id": user_id,
         }
-        
+
         # Mock the database session to raise an exception
-        mock_add = mocker.patch.object(db.session, 'add', side_effect=Exception("Simulated database error"))
-        
+        mock_add = mocker.patch.object(
+            db.session, "add", side_effect=Exception("Simulated database error")
+        )
+
         result, status_code = TeamService.create_team(user_id, data)
-        
+
         assert status_code == 500
         assert "error" in result
         assert "Internal server error" in result["error"]
@@ -645,11 +651,11 @@ def test_internal_server_error_get_all_teams(app, mocker):
     """
     with app.app_context():
         # Remplacer la moquerie pour utiliser l'attribut 'all' directement
-        mock_query = mocker.patch('models.Team.query')
+        mock_query = mocker.patch("models.Team.query")
         mock_query.all.side_effect = Exception("Simulated database error")
-        
+
         result, status_code = TeamService.get_all_teams()
-        
+
         assert status_code == 500
         assert "error" in result
         assert "Failed to retrieve teams" in result["error"]
@@ -662,15 +668,15 @@ def test_internal_server_error_get_team(app, test_user, test_team, mocker):
     with app.app_context():
         user_id = test_user["id"]
         team_id = uuid.UUID(test_team["id"])
-        
+
         # Fix the mock to use a model that matches how it's called in the code
-        mock_query = mocker.patch('models.Team.query')
+        mock_query = mocker.patch("models.Team.query")
         mock_get = mocker.MagicMock()
         mock_get.side_effect = Exception("Simulated database error")
         mock_query.get = mock_get
-        
+
         result, status_code = TeamService.get_team(user_id, team_id)
-        
+
         assert status_code == 500
         assert "error" in result
         assert "Internal server error" in result["error"]
@@ -683,38 +689,46 @@ def test_unauthorized_access(app):
     with app.app_context():
         user_id = None  # No user ID = unauthorized
         team_id = uuid.uuid4()
-        
+
         # Test create_team
-        create_result, create_status = TeamService.create_team(user_id, {"name": "Test", "lead_id": str(uuid.uuid4())})
+        create_result, create_status = TeamService.create_team(
+            user_id, {"name": "Test", "lead_id": str(uuid.uuid4())}
+        )
         assert create_status == 401
         assert "User not authenticated" in create_result["error"]
-        
+
         # Test get_team
         get_result, get_status = TeamService.get_team(user_id, team_id)
         assert get_status == 401
         assert "User not authenticated" in get_result["error"]
-        
+
         # Test update_team
-        update_result, update_status = TeamService.update_team(user_id, team_id, {"name": "Updated"})
+        update_result, update_status = TeamService.update_team(
+            user_id, team_id, {"name": "Updated"}
+        )
         assert update_status == 401
         assert "User not authenticated" in update_result["error"]
-        
+
         # Test delete_team
         delete_result, delete_status = TeamService.delete_team(user_id, team_id)
         assert delete_status == 401
         assert "User not authenticated" in delete_result["error"]
-        
+
         # Test add_team_member
-        add_result, add_status = TeamService.add_team_member(user_id, team_id, {"user_id": str(uuid.uuid4())})
+        add_result, add_status = TeamService.add_team_member(
+            user_id, team_id, {"user_id": str(uuid.uuid4())}
+        )
         assert add_status == 401
         assert "User not authenticated" in add_result["error"]
-        
+
         # Test get_team_members
         members_result, members_status = TeamService.get_team_members(user_id, team_id)
         assert members_status == 401
         assert "User not authenticated" in members_result["error"]
 
+
 # New tests to improve coverage
+
 
 def test_internal_server_error_update_team(app, test_user, test_team, mocker):
     """
@@ -724,21 +738,21 @@ def test_internal_server_error_update_team(app, test_user, test_team, mocker):
         user_id = test_user["id"]
         team_id = uuid.UUID(test_team["id"])
         data = {"name": "Error Team Update"}
-        
+
         # Simulate an error during database query
-        mock_query = mocker.patch('models.Team.query')
+        mock_query = mocker.patch("models.Team.query")
         mock_team = MagicMock()
         mock_team.name = "Original Name"
         mock_team.description = "Original Description"
         mock_get = mocker.MagicMock(return_value=mock_team)
         mock_query.get = mock_get
-        
+
         # Simulate an error during commit
-        mock_commit = mocker.patch.object(db.session, 'commit')
+        mock_commit = mocker.patch.object(db.session, "commit")
         mock_commit.side_effect = Exception("Simulated database error")
-        
+
         result, status_code = TeamService.update_team(user_id, team_id, data)
-        
+
         assert status_code == 500
         assert "error" in result
         assert "Internal server error" in result["error"]
@@ -751,19 +765,19 @@ def test_internal_server_error_delete_team(app, test_user, test_team, mocker):
     with app.app_context():
         user_id = test_user["id"]
         team_id = uuid.UUID(test_team["id"])
-        
+
         # Simulate an error during deletion
-        mock_query = mocker.patch('models.Team.query')
+        mock_query = mocker.patch("models.Team.query")
         mock_team = MagicMock()
         mock_get = mocker.MagicMock(return_value=mock_team)
         mock_query.get = mock_get
-        
+
         # Simulate an error during commit
-        mock_delete = mocker.patch.object(db.session, 'delete')
+        mock_delete = mocker.patch.object(db.session, "delete")
         mock_delete.side_effect = Exception("Simulated database error")
-        
+
         result, status_code = TeamService.delete_team(user_id, team_id)
-        
+
         assert status_code == 500
         assert "error" in result
         assert "Internal server error" in result["error"]
@@ -777,24 +791,24 @@ def test_internal_server_error_add_team_member(app, test_user, test_team, test_m
         user_id = test_user["id"]
         team_id = uuid.UUID(test_team["id"])
         data = {"user_id": test_member["id"], "role": "developer"}
-        
+
         # Simulate an error during adding
-        mock_team_query = mocker.patch('models.Team.query')
+        mock_team_query = mocker.patch("models.Team.query")
         mock_team = MagicMock()
         mock_team_get = mocker.MagicMock(return_value=mock_team)
         mock_team_query.get = mock_team_get
-        
-        mock_user_query = mocker.patch('models.User.query')
+
+        mock_user_query = mocker.patch("models.User.query")
         mock_user = MagicMock()
         mock_user_get = mocker.MagicMock(return_value=mock_user)
         mock_user_query.get = mock_user_get
-        
+
         # Simulate an error during commit
-        mock_add = mocker.patch.object(db.session, 'add')
+        mock_add = mocker.patch.object(db.session, "add")
         mock_add.side_effect = Exception("Simulated database error")
-        
+
         result, status_code = TeamService.add_team_member(user_id, team_id, data)
-        
+
         assert status_code == 500
         assert "error" in result
         assert "Internal server error" in result["error"]
@@ -809,32 +823,32 @@ def test_internal_server_error_update_team_member(app, test_user, test_team, tes
         team_id = uuid.UUID(test_team["id"])
         member_id = uuid.UUID(test_member["id"])
         data = {"role": "senior-developer"}
-        
+
         # Simulate successful queries for Team and User
-        mock_team_query = mocker.patch('models.Team.query')
+        mock_team_query = mocker.patch("models.Team.query")
         mock_team = MagicMock()
         mock_team_get = mocker.MagicMock(return_value=mock_team)
         mock_team_query.get = mock_team_get
-        
-        mock_user_query = mocker.patch('models.User.query')
+
+        mock_user_query = mocker.patch("models.User.query")
         mock_user = MagicMock()
         mock_user_get = mocker.MagicMock(return_value=mock_user)
         mock_user_query.get = mock_user_get
-        
+
         # Simulate a successful query for TeamMembership
-        mock_membership_query = mocker.patch('models.TeamMembership.query')
+        mock_membership_query = mocker.patch("models.TeamMembership.query")
         mock_filter_by = mocker.MagicMock()
         mock_membership = MagicMock()
         mock_first = mocker.MagicMock(return_value=mock_membership)
         mock_filter_by.first = mock_first
         mock_membership_query.filter_by = mocker.MagicMock(return_value=mock_filter_by)
-        
+
         # Simulate an error during commit
-        mock_commit = mocker.patch.object(db.session, 'commit')
+        mock_commit = mocker.patch.object(db.session, "commit")
         mock_commit.side_effect = Exception("Simulated database error")
-        
+
         result, status_code = TeamService.update_team_member(user_id, team_id, member_id, data)
-        
+
         assert status_code == 500
         assert "error" in result
         assert "Internal server error" in result["error"]
@@ -848,32 +862,32 @@ def test_internal_server_error_remove_team_member(app, test_user, test_team, tes
         user_id = test_user["id"]
         team_id = uuid.UUID(test_team["id"])
         member_id = uuid.UUID(test_member["id"])
-        
+
         # Simulate successful queries for Team and User
-        mock_team_query = mocker.patch('models.Team.query')
+        mock_team_query = mocker.patch("models.Team.query")
         mock_team = MagicMock()
         mock_team_get = mocker.MagicMock(return_value=mock_team)
         mock_team_query.get = mock_team_get
-        
-        mock_user_query = mocker.patch('models.User.query')
+
+        mock_user_query = mocker.patch("models.User.query")
         mock_user = MagicMock()
         mock_user_get = mocker.MagicMock(return_value=mock_user)
         mock_user_query.get = mock_user_get
-        
+
         # Simulate a successful query for TeamMembership
-        mock_membership_query = mocker.patch('models.TeamMembership.query')
+        mock_membership_query = mocker.patch("models.TeamMembership.query")
         mock_filter_by = mocker.MagicMock()
         mock_membership = MagicMock()
         mock_first = mocker.MagicMock(return_value=mock_membership)
         mock_filter_by.first = mock_first
         mock_membership_query.filter_by = mocker.MagicMock(return_value=mock_filter_by)
-        
+
         # Simulate an error during deletion
-        mock_delete = mocker.patch.object(db.session, 'delete')
+        mock_delete = mocker.patch.object(db.session, "delete")
         mock_delete.side_effect = Exception("Simulated database error")
-        
+
         result, status_code = TeamService.remove_team_member(user_id, team_id, member_id)
-        
+
         assert status_code == 500
         assert "error" in result
         assert "Internal server error" in result["error"]
@@ -886,21 +900,21 @@ def test_internal_server_error_get_team_members(app, test_user, test_team, mocke
     with app.app_context():
         user_id = test_user["id"]
         team_id = uuid.UUID(test_team["id"])
-        
+
         # Simulate a successful query for Team
-        mock_team_query = mocker.patch('models.Team.query')
+        mock_team_query = mocker.patch("models.Team.query")
         mock_team = MagicMock()
         mock_team_get = mocker.MagicMock(return_value=mock_team)
         mock_team_query.get = mock_team_get
-        
+
         # Simulate an error during the query for members
-        mock_membership_query = mocker.patch('models.TeamMembership.query')
+        mock_membership_query = mocker.patch("models.TeamMembership.query")
         mock_filter_by = mocker.MagicMock()
         mock_filter_by.all.side_effect = Exception("Simulated database error")
         mock_membership_query.filter_by = mocker.MagicMock(return_value=mock_filter_by)
-        
+
         result, status_code = TeamService.get_team_members(user_id, team_id)
-        
+
         assert status_code == 500
         assert "error" in result
         assert "Internal server error" in result["error"]
@@ -913,9 +927,9 @@ def test_add_team_member_missing_data(app, test_user, test_team):
     with app.app_context():
         user_id = test_user["id"]
         team_id = uuid.UUID(test_team["id"])
-        
+
         result, status_code = TeamService.add_team_member(user_id, team_id, None)
-        
+
         assert status_code == 400
         assert "error" in result
         assert "No input data provided" in result["error"]
@@ -928,11 +942,11 @@ def test_add_team_member_missing_role(app, test_user, test_team, test_member):
     with app.app_context():
         user_id = test_user["id"]
         team_id = uuid.UUID(test_team["id"])
-        
+
         data = {"user_id": test_member["id"]}  # Missing role
-        
+
         result, status_code = TeamService.add_team_member(user_id, team_id, data)
-        
+
         assert status_code == 400
         assert "error" in result
         assert "Role is required" in result["error"]
@@ -946,14 +960,14 @@ def test_update_team_member_no_data(app, test_user, test_team, test_member):
         user_id = test_user["id"]
         team_id = uuid.UUID(test_team["id"])
         member_id = uuid.UUID(test_member["id"])
-        
+
         # First add the member
         membership = TeamMembership(user_id=member_id, team_id=team_id, role="developer")
         db.session.add(membership)
         db.session.commit()
-        
+
         result, status_code = TeamService.update_team_member(user_id, team_id, member_id, None)
-        
+
         assert status_code == 400
         assert "error" in result
         assert "No input data provided" in result["error"]
@@ -968,9 +982,11 @@ def test_nonexistent_team_update_member(app, test_user, test_member):
         nonexistent_team_id = uuid.uuid4()
         member_id = uuid.UUID(test_member["id"])
         data = {"role": "new-role"}
-        
-        result, status_code = TeamService.update_team_member(user_id, nonexistent_team_id, member_id, data)
-        
+
+        result, status_code = TeamService.update_team_member(
+            user_id, nonexistent_team_id, member_id, data
+        )
+
         assert status_code == 404
         assert "error" in result
         assert "Team not found" in result["error"]
@@ -984,9 +1000,11 @@ def test_nonexistent_team_remove_member(app, test_user, test_member):
         user_id = test_user["id"]
         nonexistent_team_id = uuid.uuid4()
         member_id = uuid.UUID(test_member["id"])
-        
-        result, status_code = TeamService.remove_team_member(user_id, nonexistent_team_id, member_id)
-        
+
+        result, status_code = TeamService.remove_team_member(
+            user_id, nonexistent_team_id, member_id
+        )
+
         assert status_code == 404
         assert "error" in result
-        assert "Team not found" in result["error"] 
+        assert "Team not found" in result["error"]

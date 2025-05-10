@@ -3,12 +3,14 @@ from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
 
+
 def is_valid_uuid(value):
     try:
         UUID(value)
         return True
     except ValueError:
         return False
+
 
 from models import PriorityEnum, Project, StatusEnum, Task, User, db
 
@@ -146,27 +148,27 @@ class TaskService:
         Raises:
             ValueError: If any of the filters are invalid.
         """
-        if 'project_id' in filters:
-            if not is_valid_uuid(filters['project_id']):
+        if "project_id" in filters:
+            if not is_valid_uuid(filters["project_id"]):
                 raise ValueError("Invalid project_id")
-            project = Project.query.get(filters['project_id'])
+            project = Project.query.get(filters["project_id"])
             if not project:
                 raise ValueError(f"Project with ID {filters['project_id']} not found")
 
-        if 'assignee_id' in filters:
-            if not is_valid_uuid(filters['assignee_id']):
+        if "assignee_id" in filters:
+            if not is_valid_uuid(filters["assignee_id"]):
                 raise ValueError("Invalid assignee_id")
-            assignee = User.query.get(filters['assignee_id'])
+            assignee = User.query.get(filters["assignee_id"])
             if not assignee:
                 raise ValueError(f"User with ID {filters['assignee_id']} not found")
 
-        if 'status' in filters:
-            if filters['status'] not in [e.value for e in StatusEnum]:
+        if "status" in filters:
+            if filters["status"] not in [e.value for e in StatusEnum]:
                 raise ValueError("Invalid status value")
 
-        if 'priority' in filters:
-            if filters['priority'] not in [e.value for e in PriorityEnum]:
+        if "priority" in filters:
+            if filters["priority"] not in [e.value for e in PriorityEnum]:
                 raise ValueError("Invalid priority value")
 
         tasks = Task.query.filter_by(**filters).all()
-        return [task.to_dict() for task in tasks] 
+        return [task.to_dict() for task in tasks]

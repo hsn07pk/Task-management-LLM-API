@@ -162,14 +162,14 @@ def test_get_project(app, test_project):
 
 def test_get_nonexistent_project(app):
     """
-    Test the ProjectService.get_project method with non-existent project.
+    Test the ProjectService.get_project method raises when project does not exist.
     """
     with app.app_context():
         nonexistent_project_id = uuid.uuid4()
-
-        project = ProjectService.get_project(nonexistent_project_id)
-
-        assert project is None
+        with pytest.raises(Exception):
+            ProjectService.get_project(nonexistent_project_id)
+        # Do not verify the exact error message as it may vary
+        # depending on the database state
 
 
 def test_update_project(app, test_project):
@@ -254,7 +254,7 @@ def test_fetch_all_projects(app, test_project):
 
         assert isinstance(projects, list)
         assert len(projects) >= 2
-        
+
         # Convert UUID and datetime to string for JSON serialization test
         project_ids = [str(p["project_id"]) for p in projects]
         assert test_project["id"] in project_ids
@@ -285,4 +285,136 @@ def test_fetch_projects_by_team(app, test_project, test_team):
         assert len(team_projects) >= 2
         project_ids = [str(p.project_id) for p in team_projects]
         assert test_project["id"] in project_ids
-        assert str(second_project.project_id) in project_ids 
+        assert str(second_project.project_id) in project_ids
+
+
+def test_create_project_with_invalid_team(app):
+    """
+    Test that creating a project with a nonexistent team_id raises the correct exception.
+    """
+    with app.app_context():
+        fake_team_id = str(uuid.uuid4())
+        data = {
+            "title": "Invalid Team Project",
+            "description": "This project has an invalid team",
+            "status": "planning",
+            "deadline": (datetime.utcnow() + timedelta(days=10)).isoformat(),
+            "team_id": fake_team_id,
+        }
+
+        with pytest.raises(Exception) as excinfo:
+            ProjectService.create_project(data)
+        # The service wraps the original ValueError in a generic Exception
+        assert "Error creating project: Team not found" in str(excinfo.value)
+
+
+def test_create_project_with_database_integrity_error(app, test_team):
+    """
+    Test that creating a project with a nonexistent category_id raises a database integrity error.
+    """
+    with app.app_context():
+
+        fake_category_id = str(uuid.uuid4())
+        data = {
+            "title": f"Integrity Error Project {uuid.uuid4().hex[:8]}",
+            "description": "This project has an invalid category",
+            "status": "planning",
+            "deadline": (datetime.utcnow() + timedelta(days=10)).isoformat(),
+            "team_id": test_team["id"],
+            "category_id": fake_category_id,
+        }
+
+        with pytest.raises(ValueError) as excinfo:
+            ProjectService.create_project(data)
+
+        assert "Database integrity error" in str(excinfo.value)
+
+
+def test_get_project_with_invalid_id(app):
+    with app.app_context():
+        invalid_project_id = uuid.uuid4()
+
+        with pytest.raises(Exception) as excinfo:
+            ProjectService.get_project(invalid_project_id)
+        assert "Error retrieving project:" in str(excinfo.value)
+
+
+def test_update_project_with_invalid_team_id(app, test_project):
+    with app.app_context():
+        invalid_team_id = uuid.uuid4()
+        data = {
+            "title": "Updated Project Title",
+            "team_id": str(invalid_team_id),
+        }
+        project = Project.query.get(uuid.UUID(test_project["id"]))
+        with pytest.raises(Exception) as excinfo:
+            ProjectService.update_project(project, data)
+        assert "Team not found" in str(excinfo.value)
+
+
+def test_update_project_with_database_integrity_error(app, test_project):
+    with app.app_context():
+        fake_category_id = str(uuid.uuid4())
+        data = {
+            "title": "Updated Project Title",
+            "category_id": fake_category_id,
+        }
+        project = Project.query.get(uuid.UUID(test_project["id"]))
+        with pytest.raises(ValueError) as excinfo:
+            ProjectService.update_project(project, data)
+        assert "Database integrity error" in str(excinfo.value)
+
+
+def test_delete_project_error(app):
+    with app.app_context():
+        # Attempt to delete a project that doesn't exist
+        fake_project_id = uuid.uuid4()
+        project = Project.query.get(fake_project_id)
+
+        with pytest.raises(Exception) as excinfo:
+            ProjectService.delete_project(project)
+
+        assert "Error deleting project:" in str(excinfo.value)
+
+
+def test_fetch_all_projects_no_projects_prints_message_and_returns_empty(app, capsys):
+    """
+    When there are no projects in the database, fetch_all_projects()
+    should return an empty list and print a debug message.
+    """
+    with app.app_context():
+        # Reinitialize the database to ensure it's empty
+        db.drop_all()
+        db.create_all()
+
+        result = ProjectService.fetch_all_projects()
+
+        # It should return an empty list
+        assert result == []
+
+        # Capture and verify the debug print output
+        captured = capsys.readouterr()
+        assert "No projects found in the database." in captured.out
+
+
+def test_fetch_all_projects_raises_on_db_error(app, monkeypatch):
+    """
+    If the database query fails, fetch_all_projects() should rollback
+    and raise an Exception with the original error message.
+    """
+    with app.app_context():
+        # Create a fake query object whose all() method raises
+        class FakeQuery:
+            def all(self):
+                raise RuntimeError("Database error")
+
+        # Monkeypatch db.session.query to return our fake query
+        monkeypatch.setattr(db.session, "query", lambda model: FakeQuery())
+
+        # Expect an Exception wrapping the original error
+        with pytest.raises(Exception) as excinfo:
+            ProjectService.fetch_all_projects()
+
+        message = str(excinfo.value)
+        assert message.startswith("Error retrieving projects:")
+        assert "Database error" in message

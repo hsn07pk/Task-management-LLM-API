@@ -13,7 +13,7 @@ db = SQLAlchemy()
 # User Model
 class User(db.Model):
     """
-    User model represents a user in the system. It includes 
+    User model represents a user in the system. It includes
     information such as username, email, password,
     role, and timestamps for account creation and last login.
     """
@@ -180,6 +180,7 @@ class PriorityEnum(int, Enum):
     """
     Enum for defining task priorities.
     """
+
     HIGH = 1
     MEDIUM = 2
     LOW = 3
@@ -309,7 +310,7 @@ def init_db(app):
             app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
         # Don't override the SQLALCHEMY_DATABASE_URI if it's already set
         # This allows the environment variable to take precedence
-        
+
         app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
         db.init_app(app)
 
@@ -319,7 +320,6 @@ def init_db(app):
     except Exception as e:
         print(f"Database initialization error: {str(e)}")
         return False
-
 
 
 # CRUD Functions

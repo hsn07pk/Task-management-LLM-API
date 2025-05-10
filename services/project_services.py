@@ -29,7 +29,7 @@ class ProjectService:
                 description=data.get("description"),
                 team_id=team_id,
                 category_id=category_id,
-                status=data.get("status", "planning")
+                status=data.get("status", "planning"),
             )
             db.session.add(new_project)
             db.session.commit()
@@ -46,7 +46,10 @@ class ProjectService:
     def get_project(project_id):
         """Retrieves a project by its ID."""
         try:
-            return Project.query.get(project_id)
+            project = Project.query.get(project_id)
+            if not project:
+                raise ValueError(f"Project with ID {project_id} not found")
+            return project
         except Exception as e:
             raise Exception(f"Error retrieving project: {str(e)}")
 
@@ -56,7 +59,7 @@ class ProjectService:
         try:
             project.title = data.get("title", project.title)
             project.description = data.get("description", project.description)
-            
+
             if "status" in data:
                 project.status = data["status"]
 

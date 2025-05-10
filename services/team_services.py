@@ -3,7 +3,7 @@ from uuid import UUID
 
 from flask import Blueprint, jsonify
 
-from models import Team, TeamMembership, User, db
+from models import Project, Task, Team, TeamMembership, User, db
 
 # Blueprint for team-related routes
 team_bp = Blueprint("team_routes", __name__)
@@ -332,6 +332,42 @@ class TeamService:
             return {"error": "Internal server error", "message": str(e)}, 500
 
     @staticmethod
+    def get_team_member(current_user_id, team_id, user_id):
+        """
+        Retrieves details of a specific team member.
+
+        :param current_user_id: UUID of the authenticated user
+        :param team_id: UUID of the team
+        :param user_id: UUID of the user
+        :return: Tuple of (member_dict, status_code) or (error_dict, status_code)
+        """
+        try:
+            if not current_user_id:
+                return {"error": "User not authenticated"}, 401
+
+            # Check if team exists
+            team = Team.query.get(team_id)
+            if not team:
+                return {"error": "Team not found"}, 404
+
+            # Check if membership exists
+            membership = TeamMembership.query.filter_by(team_id=team_id, user_id=user_id).first()
+            if not membership:
+                return {"error": "Membership not found"}, 404
+
+            # Return member details
+            member_data = {
+                "user_id": str(membership.user_id),
+                "role": membership.role,
+                "_links": {"self": f"/users/{membership.user_id}"},
+            }
+            return member_data, 200
+
+        except Exception as e:
+            print(traceback.format_exc())
+            return {"error": "Internal server error", "message": str(e)}, 500
+
+    @staticmethod
     def get_team_members(current_user_id, team_id):
         """
         Retrieves all members of a specific team.
@@ -358,6 +394,70 @@ class TeamService:
                 for member in members
             ]
             return {"team_id": str(team_id), "members": member_list}, 200
+
+        except Exception as e:
+            print(traceback.format_exc())
+            return {"error": "Internal server error", "message": str(e)}, 500
+
+    @staticmethod
+    def get_team_projects(current_user_id, team_id):
+        """
+        Retrieves all projects associated with a specific team.
+
+        :param current_user_id: UUID of the authenticated user
+        :param team_id: UUID of the team
+        :return: Tuple of (projects_dict, status_code) or (error_dict, status_code)
+        """
+        try:
+            if not current_user_id:
+                return {"error": "User not authenticated"}, 401
+
+            # Check if the team exists
+            team = Team.query.get(team_id)
+            if not team:
+                return {"error": "Team not found"}, 404
+
+            # Retrieve all projects associated with this team
+            projects = Project.query.filter_by(team_id=team_id).all()
+
+            # Convert projects to dictionaries for JSON serialization
+            project_list = [project.to_dict() for project in projects]
+
+            return {"team_id": str(team_id), "projects": project_list}, 200
+
+        except Exception as e:
+            print(traceback.format_exc())
+            return {"error": "Internal server error", "message": str(e)}, 500
+
+    @staticmethod
+    def get_team_tasks(current_user_id, team_id):
+        """
+        Retrieves all tasks associated with a specific team.
+
+        :param current_user_id: UUID of the authenticated user
+        :param team_id: UUID of the team
+        :return: Tuple of (tasks_dict, status_code) or (error_dict, status_code)
+        """
+        try:
+            if not current_user_id:
+                return {"error": "User not authenticated"}, 401
+
+            # Check if team exists
+            team = Team.query.get(team_id)
+            if not team:
+                return {"error": "Team not found"}, 404
+
+            # Get all projects for this team
+            projects = Project.query.filter_by(team_id=team_id).all()
+            project_ids = [project.project_id for project in projects]
+
+            # Get all tasks for these projects
+            tasks = Task.query.filter(Task.project_id.in_(project_ids)).all()
+
+            # Convert tasks to dictionaries for JSON serialization
+            task_list = [task.to_dict() for task in tasks]
+
+            return {"team_id": str(team_id), "tasks": task_list}, 200
 
         except Exception as e:
             print(traceback.format_exc())

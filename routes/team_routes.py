@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, url_for
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from extentions.extensions import cache
-from schemas.schemas import TEAM_MEMBERSHIP_SCHEMA, TEAM_SCHEMA, TEAM_UPDATE_SCHEMA
+from schemas.schemas import TEAM_MEMBERSHIP_SCHEMA, TEAM_MEMBERSHIP_UPDATE_SCHEMA, TEAM_SCHEMA, TEAM_UPDATE_SCHEMA
 from services.team_services import TeamService
 from utils.hypermedia.team_hypermedia import (
     generate_error_links,
@@ -16,6 +16,7 @@ team_bp = Blueprint("team_routes", __name__, url_prefix="/teams")
 
 @team_bp.errorhandler(400)
 def bad_request(error):
+    """Handle 400 Bad Request errors with a structured response."""
     context = {"entity_type": "team"}
     if request.view_args and "team_id" in request.view_args:
         context["entity_id"] = request.view_args["team_id"]
@@ -34,6 +35,7 @@ def bad_request(error):
 
 @team_bp.errorhandler(404)
 def not_found(error):
+    """Handle 404 Bad Request errors with a structured response."""
     context = {"entity_type": "team"}
     if request.view_args and "team_id" in request.view_args:
         context["entity_id"] = request.view_args["team_id"]
@@ -52,6 +54,7 @@ def not_found(error):
 
 @team_bp.errorhandler(500)
 def internal_error(error):
+    """Handle 500 Bad Request errors with a structured response."""
     context = {"entity_type": "team"}
     if request.view_args and "team_id" in request.view_args:
         context["entity_id"] = request.view_args["team_id"]
@@ -306,7 +309,7 @@ def get_team_member(team_id, user_id):
 
 @team_bp.route("/<team_id>/members/<user_id>", methods=["PUT"])
 @jwt_required()
-@validate_json(TEAM_MEMBERSHIP_SCHEMA)
+@validate_json(TEAM_MEMBERSHIP_UPDATE_SCHEMA)
 def update_team_member(team_id, user_id):
     """
     Updates the role of a member in a team.

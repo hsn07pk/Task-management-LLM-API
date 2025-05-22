@@ -133,3 +133,15 @@ TEAM_MEMBERSHIP_SCHEMA = {
     "required": ["user_id", "role"],
     "additionalProperties": False,
 }
+
+TEAM_MEMBERSHIP_UPDATE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "role": {
+            "type": "string",
+            "enum": ["lead", "developer", "tester", "designer", "product_manager"],
+        },
+    },
+    "required": ["role"],
+    "additionalProperties": False,
+}

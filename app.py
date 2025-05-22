@@ -39,12 +39,14 @@ def create_app():
         hours=1
     )  # Token expiration time set to 1 hour
     app.config["CACHE_DEFAULT_TIMEOUT"] = 300  # Cache expiry time set to 5 minutes (300 seconds)
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-        "SQLALCHEMY_DATABASE_URI", "postgresql://postgres:postgres@postgres:5432/taskmanagement"
-    )
+    # app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    #     "SQLALCHEMY_DATABASE_URI", "postgresql://postgres:postgres@postgres:5432/taskmanagement"
+    # )
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://admin:helloworld123@localhost:5432/task_management_db'
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     # Initialize JWT and Cache
     jwt = JWTManager(app)  # Store the JWT instance
+    register_jwt_error_handlers(jwt)
     cache.init_app(app)  # Initialize caching with the Flask app
     # Initialize the database
     init_db(app)
@@ -211,6 +213,34 @@ def register_test_route(app):
         except Exception as e:
             return jsonify({"error": "Internal server error", "message": str(e)}), 500
 
+def register_jwt_error_handlers(jwt):
+    @jwt.unauthorized_loader
+    def custom_unauthorized_response(err_msg):
+        return jsonify({
+            "error": "Unauthorized",
+            "message": err_msg
+        }), 401
+
+    @jwt.invalid_token_loader
+    def custom_invalid_token_response(err_msg):
+        return jsonify({
+            "error": "Invalid Token",
+            "message": err_msg
+        }), 401
+
+    @jwt.expired_token_loader
+    def custom_expired_token_response(jwt_header, jwt_payload):
+        return jsonify({
+            "error": "Token Expired",
+            "message": "The access token has expired"
+        }), 401
+
+    @jwt.revoked_token_loader
+    def custom_revoked_token_response(jwt_header, jwt_payload):
+        return jsonify({
+            "error": "Revoked Token",
+            "message": "The token has been revoked"
+        }), 401
 
 if __name__ == "__main__":
     """

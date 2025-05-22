@@ -36,33 +36,34 @@ paths:
                 $ref: '#/components/schemas/LoginResponse'
               example:
                 access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZGVudGl0eSI6ImFiYzEyMy00NTY3LTg5MGEtYmNkZWYxMjM0NTY3IiwiZXhwIjoxNjE3MTkwMjMzfQ.JLg-ZI1tQ0dKbW-jfPj7qdOrj5RwU6Xp7s9Qg94U"
+                user_id: "abc123-4567-890a-bcdef1234567"
+                username: "john_doe"
+                _links:
+                  self: 
+                    href: "/login"
+                  user_profile:
+                    href: "/users/abc123-4567-890a-bcdef1234567"
+                  tasks:
+                    href: "/tasks"
+                  teams:
+                    href: "/teams"
+                  test:
+                    href: "/test"
+                  projects:
+                    href: "/projects"
         '400':
           description: Bad request (missing fields)
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Missing request body"
-                message: "Email and password are required"
+                error: "'Missing Field' is required"
         '401':
           description: Unauthorized (invalid credentials)
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Unauthorized"
-                message: "Invalid email or password"
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: "Internal Server Error"
-                message: "An unexpected error occurred"
+                error: "Invalid email or password"
+
   /test:
     get:
       summary: Test endpoint
@@ -76,50 +77,23 @@ paths:
           description: Successful authentication test
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  user_id:
-                    type: string
               example:
                 message: "Hello john_doe, you are authenticated!"
                 user_id: "abc123-4567-890a-bcdef1234567"
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: "Invalid user ID format"
-                message: "User ID must be a valid UUID"
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Unauthorized"
-                message: "Token is missing or invalid"
-        '404':
-          description: User not found
+                msg: "Missing Authorization Header"
+        '422':
+          description: Verification Failed (Wrong Authentication Key)
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Not Found"
-                message: "User with provided ID not found"
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /users:
+                msg: "Signature verification failed"
+
+  /users/:
     post:
       summary: Create a new user
       description: Create a new user with the provided details.
@@ -132,10 +106,10 @@ paths:
             schema:
               $ref: '#/components/schemas/UserCreateRequest'
             example:
-              username: "john_doe"
-              email: "john@example.com"
+              username: "test_user"
+              email: "user@example.com"
               password: "secure_password123"
-              role: "developer"
+              role: "member"
       responses:
         '201':
           description: User created successfully
@@ -144,25 +118,136 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
               example:
-                user_id: "abc123-4567-890a-bcdef1234567"
-                username: "john_doe"
-                email: "john@example.com"
-                role: "developer"
+                _links:
+                  collection:
+                    href: /users/
+                    method: GET
+                    title: All users
+                  create:
+                    href: /users/
+                    method: POST
+                    schema:
+                      additionalProperties: false
+                      properties:
+                        email:
+                          format: email
+                          maxLength: 100
+                          type: string
+                        full_name:
+                          maxLength: 100
+                          type: string
+                        password:
+                          maxLength: 100
+                          minLength: 8
+                          type: string
+                        role:
+                          enum:
+                            - admin
+                            - member
+                          type: string
+                        username:
+                          maxLength: 50
+                          minLength: 3
+                          type: string
+                      required:
+                        - username
+                        - email
+                        - password
+                      type: object
+                  create_user:
+                    encoding: application/json
+                    href: /users/
+                    method: POST
+                    title: Create new user
+                  projects:
+                    href: /projects/
+                    method: GET
+                    title: Browse all projects
+                  root:
+                    href: /
+                    method: GET
+                    title: API root
+                  tasks:
+                    href: /tasks/
+                    method: GET
+                    title: Browse all tasks
+                  teams:
+                    href: /teams/
+                    method: GET
+                    title: Browse all teams
+                  users:
+                    href: /users/
+                    method: GET
+                    title: Browse all users
+                message: Operation completed
         '400':
           description: Bad request (duplicate email or username)
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Bad Request"
-                message: "Email or username already exists"
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                _links:
+                  collection:
+                    href: /users/
+                    method: GET
+                    title: All users
+                  create:
+                    href: /users/
+                    method: POST
+                    schema:
+                      additionalProperties: false
+                      properties:
+                        email:
+                          format: email
+                          maxLength: 100
+                          type: string
+                        full_name:
+                          maxLength: 100
+                          type: string
+                        password:
+                          maxLength: 100
+                          minLength: 8
+                          type: string
+                        role:
+                          enum:
+                            - admin
+                            - member
+                          type: string
+                        username:
+                          maxLength: 50
+                          minLength: 3
+                          type: string
+                      required:
+                        - username
+                        - email
+                        - password
+                      type: object
+                  create_user:
+                    encoding: application/json
+                    href: /users/
+                    method: POST
+                    title: Create new user
+                  projects:
+                    href: /projects/
+                    method: GET
+                    title: Browse all projects
+                  root:
+                    href: /
+                    method: GET
+                    title: API root
+                  tasks:
+                    href: /tasks/
+                    method: GET
+                    title: Browse all tasks
+                  teams:
+                    href: /teams/
+                    method: GET
+                    title: Browse all teams
+                  users:
+                    href: /users/
+                    method: GET
+                    title: Browse all users
+                error: Email/Username already exists
+
     get:
       summary: Get all users
       description: Retrieve a list of all users.
@@ -175,31 +260,93 @@ paths:
           description: List of users
           content:
             application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/User'
               example:
-                - user_id: "abc123-4567-890a-bcdef1234567"
-                  username: "john_doe"
-                  email: "john@example.com"
-                  role: "developer"
-                - user_id: "def456-7890-123b-cdefg4567890"
-                  username: "jane_smith"
-                  email: "jane@example.com"
-                  role: "manager"
+                _links:
+                  collection:
+                    href: /users/
+                    method: GET
+                    title: All users
+                  create:
+                    href: /users/
+                    method: POST
+                    schema:
+                      additionalProperties: false
+                      properties:
+                        email:
+                          format: email
+                          maxLength: 100
+                          type: string
+                        full_name:
+                          maxLength: 100
+                          type: string
+                        password:
+                          maxLength: 100
+                          minLength: 8
+                          type: string
+                        role:
+                          enum:
+                            - admin
+                            - member
+                          type: string
+                        username:
+                          maxLength: 50
+                          minLength: 3
+                          type: string
+                      required:
+                        - username
+                        - email
+                        - password
+                      type: object
+                  create_user:
+                    encoding: application/json
+                    href: /users/
+                    method: POST
+                    title: Create new user
+                  projects:
+                    href: /projects/
+                    method: GET
+                    title: Browse all projects
+                  root:
+                    href: /
+                    method: GET
+                    title: API root
+                  tasks:
+                    href: /tasks/
+                    method: GET
+                    title: Browse all tasks
+                  teams:
+                    href: /teams/
+                    method: GET
+                    title: Browse all teams
+                  users:
+                    href: /users/
+                    method: GET
+                    title: Browse all users
+                users:
+                  - _links:
+                      self: /users/abc123-4567-890a-bcdef1234567
+                    created_at: "2025-05-10T10:00:00.000000"
+                    email: jane.doe@example.com
+                    last_login: null
+                    role: member
+                    user_id: abc123-4567-890a-bcdef1234567
+                    username: jane_doe
+                  - _links:
+                      self: /users/def456-7890-1234-bcde4567890f
+                    created_at: "2025-05-11T12:30:00.000000"
+                    email: john.smith@example.com
+                    last_login: null
+                    role: admin
+                    user_id: def456-7890-1234-bcde4567890f
+                    username: john_smith
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized"
+                message: "Missing authorization token"
+
   /users/{user_id}:
     get:
       summary: Get user details
@@ -221,34 +368,89 @@ paths:
           description: User details
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/User'
               example:
-                user_id: "abc123-4567-890a-bcdef1234567"
-                username: "john_doe"
-                email: "john@example.com"
-                role: "developer"
+                _links:
+                  self: /users/abc123-4567-890a-bcdef1234567
+                created_at: "2025-05-19T00:06:59.677615"
+                email: user@example.com
+                last_login: null
+                role: member
+                user_id: abc123-4567-890a-bcdef1234567
+                username: sample_user
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
         '404':
           description: User not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Not Found"
-                message: "User with ID abc123-4567-890a-bcdef1234567 not found"
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                _links:
+                  collection:
+                    href: "/users/"
+                    method: "GET"
+                    title: "All users"
+                  create:
+                    href: "/users/"
+                    method: "POST"
+                    schema:
+                      type: object
+                      additionalProperties: false
+                      required:
+                        - username
+                        - email
+                        - password
+                      properties:
+                        email:
+                          type: string
+                          format: email
+                          maxLength: 100
+                        full_name:
+                          type: string
+                          maxLength: 100
+                        password:
+                          type: string
+                          minLength: 8
+                          maxLength: 100
+                        role:
+                          type: string
+                          enum:
+                            - admin
+                            - member
+                        username:
+                          type: string
+                          minLength: 3
+                          maxLength: 50
+                  create_user:
+                    encoding: application/json
+                    href: "/users/"
+                    method: "POST"
+                    title: "Create new user"
+                  projects:
+                    href: "/projects/"
+                    method: "GET"
+                    title: "Browse all projects"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  tasks:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "Browse all tasks"
+                  teams:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "Browse all teams"
+                  users:
+                    href: "/users/"
+                    method: "GET"
+                    title: "Browse all users"
+                error: "User not found"
+
     put:
       summary: Update user details
       description: Update details of a specific user.
@@ -273,43 +475,102 @@ paths:
             example:
               username: "john_doe_updated"
               email: "john_updated@example.com"
-              role: "senior_developer"
       responses:
         '200':
           description: User updated successfully
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/User'
               example:
-                user_id: "abc123-4567-890a-bcdef1234567"
-                username: "john_doe_updated"
-                email: "john_updated@example.com"
-                role: "senior_developer"
+                _links:
+                  self: /users/abc123-4567-890a-bcdef1234567
+                user_id: abc123-4567-890a-bcdef1234567
+                username: johndoe
+                email: johndoe@example.com
+                role: member
+                created_at: "2025-05-10T13:54:30.646888"
+                last_login: null
         '400':
-          description: Bad request (duplicate email or username)
+          description: Bad request
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad Request"
+                message: "Username already exists"
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
         '404':
           description: User not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                _links:
+                  collection:
+                    href: "/users/"
+                    method: "GET"
+                    title: "All users"
+                  create:
+                    href: "/users/"
+                    method: "POST"
+                    schema:
+                      type: object
+                      additionalProperties: false
+                      required:
+                        - username
+                        - email
+                        - password
+                      properties:
+                        email:
+                          type: string
+                          format: email
+                          maxLength: 100
+                        full_name:
+                          type: string
+                          maxLength: 100
+                        password:
+                          type: string
+                          minLength: 8
+                          maxLength: 100
+                        role:
+                          type: string
+                          enum:
+                            - admin
+                            - member
+                        username:
+                          type: string
+                          minLength: 3
+                          maxLength: 50
+                  create_user:
+                    encoding: application/json
+                    href: "/users/"
+                    method: "POST"
+                    title: "Create new user"
+                  projects:
+                    href: "/projects/"
+                    method: "GET"
+                    title: "Browse all projects"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  tasks:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "Browse all tasks"
+                  teams:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "Browse all teams"
+                  users:
+                    href: "/users/"
+                    method: "GET"
+                    title: "Browse all users"
+                error: "User not found"
+                message: "User with ID 35f84253-c211-4365-a839-fb1da03b3700 not found"
+
     delete:
       summary: Delete a user
       description: Delete a specific user.
@@ -330,32 +591,145 @@ paths:
           description: User deleted successfully
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
               example:
-                message: "User deleted successfully"
+                _links:
+                  collection:
+                    href: /users/
+                    method: GET
+                    title: All users
+                  create:
+                    href: /users/
+                    method: POST
+                    schema:
+                      additionalProperties: false
+                      type: object
+                      required:
+                        - username
+                        - email
+                        - password
+                      properties:
+                        email:
+                          type: string
+                          format: email
+                          maxLength: 100
+                        full_name:
+                          type: string
+                          maxLength: 100
+                        password:
+                          type: string
+                          minLength: 8
+                          maxLength: 100
+                        role:
+                          type: string
+                          enum:
+                            - admin
+                            - member
+                        username:
+                          type: string
+                          minLength: 3
+                          maxLength: 50
+                  create_user:
+                    encoding: application/json
+                    href: /users/
+                    method: POST
+                    title: Create new user
+                  projects:
+                    href: /projects/
+                    method: GET
+                    title: Browse all projects
+                  root:
+                    href: /
+                    method: GET
+                    title: API root
+                  tasks:
+                    href: /tasks/
+                    method: GET
+                    title: Browse all tasks
+                  teams:
+                    href: /teams/
+                    method: GET
+                    title: Browse all teams
+                  users:
+                    href: /users/
+                    method: GET
+                    title: Browse all users
+                message: User deleted successfully
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
         '404':
           description: User not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /teams:
+              example:
+                _links:
+                  collection:
+                    href: "/users/"
+                    method: "GET"
+                    title: "All users"
+                  create:
+                    href: "/users/"
+                    method: "POST"
+                    schema:
+                      type: object
+                      additionalProperties: false
+                      required:
+                        - username
+                        - email
+                        - password
+                      properties:
+                        email:
+                          type: string
+                          format: email
+                          maxLength: 100
+                        full_name:
+                          type: string
+                          maxLength: 100
+                        password:
+                          type: string
+                          minLength: 8
+                          maxLength: 100
+                        role:
+                          type: string
+                          enum:
+                            - admin
+                            - member
+                        username:
+                          type: string
+                          minLength: 3
+                          maxLength: 50
+                  create_user:
+                    encoding: application/json
+                    href: "/users/"
+                    method: "POST"
+                    title: "Create new user"
+                  projects:
+                    href: "/projects/"
+                    method: "GET"
+                    title: "Browse all projects"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  tasks:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "Browse all tasks"
+                  teams:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "Browse all teams"
+                  users:
+                    href: "/users/"
+                    method: "GET"
+                    title: "Browse all users"
+                error: "User not found"
+                message: "User with ID abc123-4567-890a-bcdef1234567 not found"
+
+  /teams/:
     post:
       summary: Create a new team
       description: Create a new team with the provided details.
@@ -370,42 +744,93 @@ paths:
             schema:
               $ref: '#/components/schemas/TeamCreateRequest'
             example:
-              name: "Development Team A"
-              description: "Backend development team for Project X"
-              lead_id: "abc123-4567-890a-bcdef1234567"
+              name: QA Team
+              description: Tests Frontend
+              lead_id: abc123-4567-890a-bcdef1234567
       responses:
         '201':
           description: Team created successfully
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/Team'
               example:
-                team_id: "xyz789-4567-890a-bcdef1234567"
-                name: "Development Team A"
-                description: "Backend development team for Project X"
-                lead_id: "abc123-4567-890a-bcdef1234567"
-        '400':
-          description: Bad request (invalid lead_id)
+                _links:
+                  self: /teams/xyz789-4567-890a-bcdef1234567
+                  members: /teams/xyz789-4567-890a-bcdef1234567/members
+                team_id: xyz789-4567-890a-bcdef1234567
+                name: QA Team
+                description: Tests Frontend
+                lead_id: abc123-4567-890a-bcdef1234567
+        '404':
+          description: Invalid lead_id - User not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Bad Request"
-                message: "Lead ID must be a valid existing user ID"
+                _links:
+                  collection:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "All teams"
+                  create:
+                    href: "/teams/"
+                    method: "POST"
+                    encoding: "application/json"
+                    title: "Create a new team"
+                    schema:
+                      type: object
+                      additionalProperties: false
+                      required:
+                        - name
+                        - lead_id
+                      properties:
+                        name:
+                          type: string
+                          minLength: 3
+                          maxLength: 100
+                        description:
+                          type: string
+                          maxLength: 500
+                        lead_id:
+                          type: string
+                          format: uuid
+                  create_team:
+                    href: "/teams/"
+                    method: "POST"
+                    encoding: "application/json"
+                    title: "Create new team"
+                  projects:
+                    href: "/projects/"
+                    method: "GET"
+                    title: "Browse all projects"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  tasks:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "Browse all tasks"
+                  teams:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "Browse all teams"
+                  users:
+                    href: "/users/"
+                    method: "GET"
+                    title: "Browse all users"
+                error: "Invalid lead_id: User not found"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              example:
+                error: "Invalid request data: 'name' is a required property"
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
+
     get:
       summary: Get all teams
       description: Retrieve a list of all teams.
@@ -418,31 +843,28 @@ paths:
           description: List of teams
           content:
             application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Team'
               example:
                 - team_id: "xyz789-4567-890a-bcdef1234567"
                   name: "Development Team A"
-                  description: "Backend development team for Project X"
+                  description: "Backend development team"
                   lead_id: "abc123-4567-890a-bcdef1234567"
+                  _links:
+                    self: "/teams/xyz789-4567-890a-bcdef1234567"
+                    members: "/teams/xyz789-4567-890a-bcdef1234567/members"
                 - team_id: "uvw456-7890-123b-cdefg4567890"
                   name: "QA Team"
                   description: "Quality Assurance Team"
                   lead_id: "def456-7890-123b-cdefg4567890"
+                  _links:
+                    self: "/teams/uvw456-7890-123b-cdefg4567890"
+                    members: "/teams/uvw456-7890-123b-cdefg4567890/members"
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
+
   /teams/{team_id}:
     get:
       summary: Get team details
@@ -464,31 +886,109 @@ paths:
           description: Team details
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/Team'
               example:
-                team_id: "xyz789-4567-890a-bcdef1234567"
-                name: "Development Team A"
-                description: "Backend development team for Project X"
-                lead_id: "abc123-4567-890a-bcdef1234567"
+                _links:
+                  self: /teams/xyz789-4567-890a-bcdef1234567
+                  members: /teams/xyz789-4567-890a-bcdef1234567/members
+                team_id: xyz789-4567-890a-bcdef1234567
+                name: Development Team A - Updated
+                description: Updated backend team
+                lead_id: abc123-4567-890a-bcdef1234567
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
         '404':
           description: Team not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                _links:
+                  add_member:
+                    encoding: application/json
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3709/members"
+                    method: "POST"
+                    title: "Add a member to team"
+                    schema:
+                      type: object
+                      additionalProperties: false
+                      required:
+                        - user_id
+                        - role
+                      properties:
+                        role:
+                          type: string
+                          enum: [lead, developer, tester, designer, product_manager]
+                        user_id:
+                          type: string
+                          format: uuid
+                  collection:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "All teams"
+                  delete:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3709"
+                    method: "DELETE"
+                    title: "Delete team"
+                  members:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3709/members"
+                    method: "GET"
+                    title: "List team members"
+                  projects:
+                    href: "/projects/"
+                    method: "GET"
+                    title: "Browse all projects"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  self:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3709"
+                    method: "GET"
+                    title: "Get team details"
+                  tasks:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "Browse all tasks"
+                  team_projects:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3709/projects"
+                    method: "GET"
+                    title: "Get team's projects"
+                  team_tasks:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3709/tasks"
+                    method: "GET"
+                    title: "Get team's tasks"
+                  teams:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "Browse all teams"
+                  update:
+                    encoding: application/json
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3709"
+                    method: "PUT"
+                    title: "Update team details"
+                    schema:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        name:
+                          type: string
+                          minLength: 3
+                          maxLength: 100
+                        description:
+                          type: string
+                          maxLength: 500
+                        lead_id:
+                          type: string
+                          format: uuid
+                  users:
+                    href: "/users/"
+                    method: "GET"
+                    title: "Browse all users"
+                error: "Team not found"
+
     put:
       summary: Update team details
       description: Update details of a specific team.
@@ -512,44 +1012,205 @@ paths:
               $ref: '#/components/schemas/TeamUpdateRequest'
             example:
               name: "Development Team A - Updated"
-              description: "Backend development team for Project X and Y"
+              description: "Updated backend team"
               lead_id: "def456-7890-123b-cdefg4567890"
       responses:
         '200':
           description: Team updated successfully
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/Team'
               example:
-                team_id: "xyz789-4567-890a-bcdef1234567"
-                name: "Development Team A - Updated"
-                description: "Backend development team for Project X and Y"
-                lead_id: "def456-7890-123b-cdefg4567890"
+                _links:
+                  self: /teams/xyz789-4567-890a-bcdef1234567
+                  members: /teams/xyz789-4567-890a-bcdef1234567/members
+                team_id: xyz789-4567-890a-bcdef1234567
+                name: Development Team A - Updated
+                description: Updated backend team
+                lead_id: abc123-4567-890a-bcdef1234567
         '400':
-          description: Bad request (invalid lead_id)
+          description: Bad request
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                _links:
+                  add_member:
+                    encoding: application/json
+                    href: "/teams/abc123-4567-890a-bcdef1234567/members"
+                    method: "POST"
+                    schema:
+                      type: object
+                      additionalProperties: false
+                      required:
+                        - user_id
+                        - role
+                      properties:
+                        user_id:
+                          type: string
+                          format: uuid
+                        role:
+                          type: string
+                          enum:
+                            - lead
+                            - developer
+                            - tester
+                            - designer
+                            - product_manager
+                    title: "Add a member to team"
+                  collection:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "All teams"
+                  delete:
+                    href: "/teams/abc123-4567-890a-bcdef1234567"
+                    method: "DELETE"
+                    title: "Delete team"
+                  members:
+                    href: "/teams/abc123-4567-890a-bcdef1234567/members"
+                    method: "GET"
+                    title: "List team members"
+                  projects:
+                    href: "/projects/"
+                    method: "GET"
+                    title: "Browse all projects"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  self:
+                    href: "/teams/abc123-4567-890a-bcdef1234567"
+                    method: "GET"
+                    title: "Get team details"
+                  tasks:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "Browse all tasks"
+                  team_projects:
+                    href: "/teams/abc123-4567-890a-bcdef1234567/projects"
+                    method: "GET"
+                    title: "Get team's projects"
+                  team_tasks:
+                    href: "/teams/abc123-4567-890a-bcdef1234567/tasks"
+                    method: "GET"
+                    title: "Get team's tasks"
+                  teams:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "Browse all teams"
+                  update:
+                    encoding: application/json
+                    href: "/teams/abc123-4567-890a-bcdef1234567"
+                    method: "PUT"
+                    title: "Update team details"
+                    schema:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        name:
+                          type: string
+                          minLength: 3
+                          maxLength: 100
+                        description:
+                          type: string
+                          maxLength: 500
+                        lead_id:
+                          type: string
+                          format: uuid
+                error: "Invalid lead_id format"
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
         '404':
           description: Team not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                _links:
+                  add_member:
+                    encoding: application/json
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3709/members"
+                    method: "POST"
+                    title: "Add a member to team"
+                    schema:
+                      type: object
+                      additionalProperties: false
+                      required:
+                        - user_id
+                        - role
+                      properties:
+                        role:
+                          type: string
+                          enum: [lead, developer, tester, designer, product_manager]
+                        user_id:
+                          type: string
+                          format: uuid
+                  collection:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "All teams"
+                  delete:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3709"
+                    method: "DELETE"
+                    title: "Delete team"
+                  members:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3709/members"
+                    method: "GET"
+                    title: "List team members"
+                  projects:
+                    href: "/projects/"
+                    method: "GET"
+                    title: "Browse all projects"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  self:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3709"
+                    method: "GET"
+                    title: "Get team details"
+                  tasks:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "Browse all tasks"
+                  team_projects:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3709/projects"
+                    method: "GET"
+                    title: "Get team's projects"
+                  team_tasks:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3709/tasks"
+                    method: "GET"
+                    title: "Get team's tasks"
+                  teams:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "Browse all teams"
+                  update:
+                    encoding: application/json
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3709"
+                    method: "PUT"
+                    title: "Update team details"
+                    schema:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        name:
+                          type: string
+                          minLength: 3
+                          maxLength: 100
+                        description:
+                          type: string
+                          maxLength: 500
+                        lead_id:
+                          type: string
+                          format: uuid
+                  users:
+                    href: "/users/"
+                    method: "GET"
+                    title: "Browse all users"
+                error: "Team not found"
+
     delete:
       summary: Delete a team
       description: Delete a specific team.
@@ -570,34 +1231,154 @@ paths:
           description: Team deleted successfully
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
               example:
-                message: "Team deleted successfully"
+                _links:
+                  collection:
+                    href: /teams/
+                    method: GET
+                    title: All teams
+                  create:
+                    href: /teams/
+                    method: POST
+                    encoding: application/json
+                    title: Create a new team
+                    schema:
+                      type: object
+                      required: [name, lead_id]
+                      additionalProperties: false
+                      properties:
+                        name:
+                          type: string
+                          minLength: 3
+                          maxLength: 100
+                        description:
+                          type: string
+                          maxLength: 500
+                        lead_id:
+                          type: string
+                          format: uuid
+                  create_team:
+                    href: /teams/
+                    method: POST
+                    encoding: application/json
+                    title: Create new team
+                  projects:
+                    href: /projects/
+                    method: GET
+                    title: Browse all projects
+                  root:
+                    href: /
+                    method: GET
+                    title: API root
+                  tasks:
+                    href: /tasks/
+                    method: GET
+                    title: Browse all tasks
+                  teams:
+                    href: /teams/
+                    method: GET
+                    title: Browse all teams
+                  users:
+                    href: /users/
+                    method: GET
+                    title: Browse all users
+                message: Team deleted successfully
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
         '404':
           description: Team not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                _links:
+                  add_member:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members
+                    method: POST
+                    encoding: application/json
+                    title: Add a member to team
+                    schema:
+                      type: object
+                      required: [user_id, role]
+                      additionalProperties: false
+                      properties:
+                        role:
+                          type: string
+                          enum: [lead, developer, tester, designer, product_manager]
+                        user_id:
+                          type: string
+                          format: uuid
+                  collection:
+                    href: /teams/
+                    method: GET
+                    title: All teams
+                  delete:
+                    href: /teams/xyz789-4567-890a-bcdef1234567
+                    method: DELETE
+                    title: Delete team
+                  members:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members
+                    method: GET
+                    title: List team members
+                  projects:
+                    href: /projects/
+                    method: GET
+                    title: Browse all projects
+                  root:
+                    href: /
+                    method: GET
+                    title: API root
+                  self:
+                    href: /teams/xyz789-4567-890a-bcdef1234567
+                    method: GET
+                    title: Get team details
+                  tasks:
+                    href: /tasks/
+                    method: GET
+                    title: Browse all tasks
+                  team_projects:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/projects
+                    method: GET
+                    title: Get team's projects
+                  team_tasks:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/tasks
+                    method: GET
+                    title: Get team's tasks
+                  teams:
+                    href: /teams/
+                    method: GET
+                    title: Browse all teams
+                  update:
+                    href: /teams/xyz789-4567-890a-bcdef1234567
+                    method: PUT
+                    encoding: application/json
+                    title: Update team details
+                    schema:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        name:
+                          type: string
+                          minLength: 3
+                          maxLength: 100
+                        description:
+                          type: string
+                          maxLength: 500
+                        lead_id:
+                          type: string
+                          format: uuid
+                  users:
+                    href: /users/
+                    method: GET
+                    title: Browse all users
+                error: Team not found
+
   /teams/{team_id}/members:
     post:
-      summary: Add a member to a team
+      summary: Add a member to a team check
       description: Adds a user to the specified team with a designated role.
       tags:
         - Team Members
@@ -625,32 +1406,177 @@ paths:
           description: Member added successfully
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/TeamMember'
               example:
-                user_id: "abc123-4567-890a-bcdef1234567"
-                role: "developer"
+                _links:
+                  delete:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members/abc123-4567-890a-bcdef1234567
+                    method: DELETE
+                    title: Remove member from team
+                  members:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members
+                    method: GET
+                    title: List all team members
+                  root:
+                    href: /
+                    method: GET
+                    title: API root
+                  self:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members/abc123-4567-890a-bcdef1234567
+                    method: GET
+                    title: Get team member details
+                  team:
+                    href: /teams/xyz789-4567-890a-bcdef1234567
+                    method: GET
+                    title: Get parent team
+                  teams:
+                    href: /teams/
+                    method: GET
+                    title: List all teams
+                  update:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members/abc123-4567-890a-bcdef1234567
+                    method: PUT
+                    title: Update team member role
+                    encoding: application/json
+                    schema:
+                      type: object
+                      required:
+                        - user_id
+                        - role
+                      additionalProperties: false
+                      properties:
+                        user_id:
+                          type: string
+                          format: uuid
+                        role:
+                          type: string
+                          enum:
+                            - lead
+                            - developer
+                            - tester
+                            - designer
+                            - product_manager
+                  user:
+                    href: /users/abc123-4567-890a-bcdef1234567
+                    method: GET
+                    title: View user profile
+                message: Member added successfully
         '400':
-          description: Bad request (e.g., user already a member)
+          description: Bad request
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Bad Request"
-                message: "User is already a member of the team"
+                _links:
+                  delete:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members/abc123-4567-890a-bcdef1234567
+                    method: DELETE
+                    title: Remove member from team
+                  members:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members
+                    method: GET
+                    title: List all team members
+                  root:
+                    href: /
+                    method: GET
+                    title: API root
+                  self:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members/abc123-4567-890a-bcdef1234567
+                    method: GET
+                    title: Get team member details
+                  team:
+                    href: /teams/xyz789-4567-890a-bcdef1234567
+                    method: GET
+                    title: Get parent team
+                  teams:
+                    href: /teams/
+                    method: GET
+                    title: List all teams
+                  update:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members/abc123-4567-890a-bcdef1234567
+                    method: PUT
+                    title: Update team member role
+                    encoding: application/json
+                    schema:
+                      type: object
+                      required:
+                        - user_id
+                        - role
+                      additionalProperties: false
+                      properties:
+                        user_id:
+                          type: string
+                          format: uuid
+                        role:
+                          type: string
+                          enum:
+                            - lead
+                            - developer
+                            - tester
+                            - designer
+                            - product_manager
+                  user:
+                    href: /users/abc123-4567-890a-bcdef1234567
+                    method: GET
+                    title: View user profile
+                error: User is already a member of this team
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
+              example:
+                msg: "Missing Authorization Header"
+        '404':
+          description: Not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                _links:
+                  delete:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700/members/abc123-4567-890a-bcdef1234567"
+                    method: "DELETE"
+                    title: "Remove member from team"
+                  members:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700/members"
+                    method: "GET"
+                    title: "List all team members"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  self:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700/members/abc123-4567-890a-bcdef1234567"
+                    method: "GET"
+                    title: "Get team member details"
+                  team:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700"
+                    method: "GET"
+                    title: "Get parent team"
+                  teams:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "List all teams"
+                  update:
+                    encoding: application/json
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700/members/abc123-4567-890a-bcdef1234567"
+                    method: "PUT"
+                    title: "Update team member role"
+                    schema:
+                      type: object
+                      additionalProperties: false
+                      required:
+                        - user_id
+                        - role
+                      properties:
+                        user_id:
+                          type: string
+                          format: uuid
+                        role:
+                          type: string
+                          enum: [lead, developer, tester, designer, product_manager]
+                  user:
+                    href: "/users/abc123-4567-890a-bcdef1234567"
+                    method: "GET"
+                    title: "View user profile"
+                error: "Team not found"
 
     get:
       summary: Get team members
@@ -672,34 +1598,187 @@ paths:
           description: List of team members
           content:
             application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TeamMember'
               example:
-                - user_id: "abc123-4567-890a-bcdef1234567"
-                  role: "developer"
-                - user_id: "def456-7890-123b-cdefg4567890"
-                  role: "tester"
+                _links:
+                  add_member:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members
+                    method: POST
+                    title: Add a team member
+                    encoding: application/json
+                    schema:
+                      type: object
+                      required:
+                        - user_id
+                        - role
+                      additionalProperties: false
+                      properties:
+                        user_id:
+                          type: string
+                          format: uuid
+                        role:
+                          type: string
+                          enum: [lead, developer, tester, designer, product_manager]
+                  members:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members
+                    method: GET
+                    title: List all team members
+                  root:
+                    href: /
+                    method: GET
+                    title: API root
+                  team:
+                    href: /teams/xyz789-4567-890a-bcdef1234567
+                    method: GET
+                    title: Get parent team
+                  teams:
+                    href: /teams/
+                    method: GET
+                    title: List all teams
+                team_id: xyz789-4567-890a-bcdef1234567
+                members:
+                  - user_id: abc123-4567-890a-bcdef1234567
+                    role: lead
+                    _links:
+                      self:
+                        href: /teams/xyz789-4567-890a-bcdef1234567/members/abc123-4567-890a-bcdef1234567
+                        method: GET
+                        title: Get team member details
+                      delete:
+                        href: /teams/xyz789-4567-890a-bcdef1234567/members/abc123-4567-890a-bcdef1234567
+                        method: DELETE
+                        title: Remove member from team
+                      update:
+                        href: /teams/xyz789-4567-890a-bcdef1234567/members/abc123-4567-890a-bcdef1234567
+                        method: PUT
+                        title: Update team member role
+                        encoding: application/json
+                        schema:
+                          type: object
+                          required:
+                            - user_id
+                            - role
+                          additionalProperties: false
+                          properties:
+                            user_id:
+                              type: string
+                              format: uuid
+                            role:
+                              type: string
+                              enum: [lead, developer, tester, designer, product_manager]
+                      user:
+                        href: /users/abc123-4567-890a-bcdef1234567
+                        method: GET
+                        title: View user profile
+                      members:
+                        href: /teams/xyz789-4567-890a-bcdef1234567/members
+                        method: GET
+                        title: List all team members
+                      root:
+                        href: /
+                        method: GET
+                        title: API root
+                      team:
+                        href: /teams/xyz789-4567-890a-bcdef1234567
+                        method: GET
+                        title: Get parent team
+                      teams:
+                        href: /teams/
+                        method: GET
+                        title: List all teams
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
         '404':
           description: Team not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
+              example:
+                _links:
+                  add_member:
+                    encoding: application/json
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700/members"
+                    method: "POST"
+                    title: "Add a member to team"
+                    schema:
+                      type: object
+                      additionalProperties: false
+                      required:
+                        - user_id
+                        - role
+                      properties:
+                        role:
+                          type: string
+                          enum: [lead, developer, tester, designer, product_manager]
+                        user_id:
+                          type: string
+                          format: uuid
+                  collection:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "All teams"
+                  delete:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700"
+                    method: "DELETE"
+                    title: "Delete team"
+                  members:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700/members"
+                    method: "GET"
+                    title: "List team members"
+                  projects:
+                    href: "/projects/"
+                    method: "GET"
+                    title: "Browse all projects"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  self:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700"
+                    method: "GET"
+                    title: "Get team details"
+                  tasks:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "Browse all tasks"
+                  team_projects:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700/projects"
+                    method: "GET"
+                    title: "Get team's projects"
+                  team_tasks:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700/tasks"
+                    method: "GET"
+                    title: "Get team's tasks"
+                  teams:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "Browse all teams"
+                  update:
+                    encoding: application/json
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700"
+                    method: "PUT"
+                    title: "Update team details"
+                    schema:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        name:
+                          type: string
+                          minLength: 3
+                          maxLength: 100
+                        description:
+                          type: string
+                          maxLength: 500
+                        lead_id:
+                          type: string
+                          format: uuid
+                  users:
+                    href: "/users/"
+                    method: "GET"
+                    title: "Browse all users"
+                error: "Team not found"
   /teams/{team_id}/members/{user_id}:
     put:
       summary: Update a team member's role
@@ -736,35 +1815,125 @@ paths:
           description: Role updated successfully
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/TeamMember'
               example:
-                user_id: "abc123-4567-890a-bcdef1234567"
-                role: "lead"
+                _links:
+                  delete:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members/abc123-4567-890a-bcdef1234567
+                    method: DELETE
+                    title: Remove member from team
+                  members:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members
+                    method: GET
+                    title: List all team members
+                  root:
+                    href: /
+                    method: GET
+                    title: API root
+                  self:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members/abc123-4567-890a-bcdef1234567
+                    method: GET
+                    title: Get team member details
+                  team:
+                    href: /teams/xyz789-4567-890a-bcdef1234567
+                    method: GET
+                    title: Get parent team
+                  teams:
+                    href: /teams/
+                    method: GET
+                    title: List all teams
+                  update:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members/abc123-4567-890a-bcdef1234567
+                    method: PUT
+                    title: Update team member role
+                    encoding: application/json
+                    schema:
+                      type: object
+                      required:
+                        - user_id
+                        - role
+                      additionalProperties: false
+                      properties:
+                        user_id:
+                          type: string
+                          format: uuid
+                        role:
+                          type: string
+                          enum:
+                            - lead
+                            - developer
+                            - tester
+                            - designer
+                            - product_manager
+                  user:
+                    href: /users/abc123-4567-890a-bcdef1234567
+                    method: GET
+                    title: View user profile
+                message: Member role updated successfully
         '400':
           description: Bad request
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "No input data provided"
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
         '404':
           description: Membership not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                _links:
+                  delete:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700/members/35f84253-c211-4365-a839-fb1da03b3700"
+                    method: "DELETE"
+                    title: "Remove member from team"
+                  members:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700/members"
+                    method: "GET"
+                    title: "List all team members"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  self:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700/members/35f84253-c211-4365-a839-fb1da03b3700"
+                    method: "GET"
+                    title: "Get team member details"
+                  team:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700"
+                    method: "GET"
+                    title: "Get parent team"
+                  teams:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "List all teams"
+                  update:
+                    encoding: application/json
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700/members/35f84253-c211-4365-a839-fb1da03b3700"
+                    method: "PUT"
+                    title: "Update team member role"
+                    schema:
+                      type: object
+                      additionalProperties: false
+                      required:
+                        - user_id
+                        - role
+                      properties:
+                        user_id:
+                          type: string
+                          format: uuid
+                        role:
+                          type: string
+                          enum: [lead, developer, tester, designer, product_manager]
+                  user:
+                    href: "/users/35f84253-c211-4365-a839-fb1da03b3700"
+                    method: "GET"
+                    title: "View user profile"
+                error: "Team not found"
 
     delete:
       summary: Remove a member from a team
@@ -793,32 +1962,109 @@ paths:
           description: Member removed successfully
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
               example:
-                message: "User removed from the team successfully."
+                _links:
+                  add_member:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members
+                    method: POST
+                    title: Add a team member
+                    encoding: application/json
+                    schema:
+                      type: object
+                      required:
+                        - user_id
+                        - role
+                      additionalProperties: false
+                      properties:
+                        user_id:
+                          type: string
+                          format: uuid
+                        role:
+                          type: string
+                          enum:
+                            - lead
+                            - developer
+                            - tester
+                            - designer
+                            - product_manager
+                  members:
+                    href: /teams/xyz789-4567-890a-bcdef1234567/members
+                    method: GET
+                    title: List all team members
+                  root:
+                    href: /
+                    method: GET
+                    title: API root
+                  team:
+                    href: /teams/xyz789-4567-890a-bcdef1234567
+                    method: GET
+                    title: Get parent team
+                  teams:
+                    href: /teams/
+                    method: GET
+                    title: List all teams
+                message: Member removed successfully
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
         '404':
           description: Membership not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /projects:
+              example:
+                _links:
+                  delete:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700/members/35f84253-c211-4365-a839-fb1da03b3700"
+                    method: "DELETE"
+                    title: "Remove member from team"
+                  members:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700/members"
+                    method: "GET"
+                    title: "List all team members"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  self:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700/members/35f84253-c211-4365-a839-fb1da03b3700"
+                    method: "GET"
+                    title: "Get team member details"
+                  team:
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700"
+                    method: "GET"
+                    title: "Get parent team"
+                  teams:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "List all teams"
+                  update:
+                    encoding: application/json
+                    href: "/teams/35f84253-c211-4365-a839-fb1da03b3700/members/35f84253-c211-4365-a839-fb1da03b3700"
+                    method: "PUT"
+                    title: "Update team member role"
+                    schema:
+                      type: object
+                      additionalProperties: false
+                      required:
+                        - user_id
+                        - role
+                      properties:
+                        user_id:
+                          type: string
+                          format: uuid
+                        role:
+                          type: string
+                          enum: [lead, developer, tester, designer, product_manager]
+                  user:
+                    href: "/users/35f84253-c211-4365-a839-fb1da03b3700"
+                    method: "GET"
+                    title: "View user profile"
+                error: "Team not found"
+
+  /projects/:
     post:
       summary: Create a new project
       description: Create a new project with the provided details.
@@ -834,40 +2080,94 @@ paths:
               $ref: '#/components/schemas/ProjectCreateRequest'
             example:
               title: "New Web Application"
-              description: "Developing a responsive web application for client X"
+              description: "Developing a responsive web app"
               team_id: "xyz789-4567-890a-bcdef1234567"
-              category_id: "cat123-4567-890a-bcdef1234567"
+              status: "on_hold"
+              priority: 3
       responses:
         '201':
           description: Project created successfully
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/Project'
               example:
-                project_id: "proj123-4567-890a-bcdef1234567"
-                title: "New Web Application"
-                description: "Developing a responsive web application for client X"
-                team_id: "xyz789-4567-890a-bcdef1234567"
-                category_id: "cat123-4567-890a-bcdef1234567"
-        '400':
-          description: Bad request (invalid team_id or category_id)
+                _links:
+                  self:
+                    href: /projects/proj123-4567-890a-bcdef1234567
+                    method: GET
+                    title: View this project
+                  collection:
+                    href: /projects
+                    method: GET
+                    title: All projects
+                  create:
+                    href: /projects
+                    method: POST
+                    title: Create a new project
+                  update:
+                    href: /projects/proj123-4567-890a-bcdef1234567
+                    method: PUT
+                    title: Update this project
+                  delete:
+                    href: /projects/proj123-4567-890a-bcdef1234567
+                    method: DELETE
+                    title: Delete this project
+                  tasks:
+                    href: /tasks?project_id=proj123-4567-890a-bcdef1234567
+                    method: GET
+                    title: Tasks in this project
+                  team:
+                    href: /teams/xyz789-4567-890a-bcdef1234567
+                    method: GET
+                    title: Team assigned to this project
+                  root:
+                    href: /
+                    method: GET
+                    title: API root
+                project_id: proj123-4567-890a-bcdef1234567
+                title: Testing Web Application
+                description: Testing a responsive web app
+                status: on_hold
+                team_id: xyz789-4567-890a-bcdef1234567
+                category_id: null
+                deadline: null
+        '404':
+          description: Invalid input – team not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                _links:
+                  create:
+                    href: "/projects"
+                    method: "POST"
+                    title: "Create a new project"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  self:
+                    href: "/projects"
+                    method: "GET"
+                    title: "All projects"
+                  tasks:
+                    href: "/tasks"
+                    method: "GET"
+                    title: "All tasks"
+                  teams:
+                    href: "/teams"
+                    method: "GET"
+                    title: "All teams"
+                  users:
+                    href: "/users"
+                    method: "GET"
+                    title: "All users"
+                message: "Error creating project: Team not found"
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
+
     get:
       summary: Get all projects
       description: Retrieve a list of all projects.
@@ -880,33 +2180,60 @@ paths:
           description: List of projects
           content:
             application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Project'
               example:
-                - project_id: "proj123-4567-890a-bcdef1234567"
-                  title: "New Web Application"
-                  description: "Developing a responsive web application for client X"
-                  team_id: "xyz789-4567-890a-bcdef1234567"
-                  category_id: "cat123-4567-890a-bcdef1234567"
-                - project_id: "proj456-7890-123b-cdefg4567890"
-                  title: "Mobile App Development"
-                  description: "iOS and Android app for client Y"
-                  team_id: "uvw456-7890-123b-cdefg4567890"
-                  category_id: "cat456-7890-123b-cdefg4567890"
+                _links:
+                  create:
+                    href: /projects
+                    method: POST
+                    title: Create a new project
+                  root:
+                    href: /
+                    method: GET
+                    title: API root
+                  self:
+                    href: /projects
+                    method: GET
+                    title: All projects
+                  tasks:
+                    href: /tasks
+                    method: GET
+                    title: All tasks
+                  teams:
+                    href: /teams
+                    method: GET
+                    title: All teams
+                  users:
+                    href: /users
+                    method: GET
+                    title: All users
+                projects:
+                  - _links:
+                      self: /projects/proj123-4567-890a-bcdef1234567
+                      tasks: /tasks?project_id=proj123-4567-890a-bcdef1234567
+                    project_id: proj123-4567-890a-bcdef1234567
+                    title: Project Alpha
+                    description: Frontend redesign and API integration
+                    status: active
+                    team_id: xyz789-4567-890a-bcdef1234567
+                    category_id: null
+                    deadline: null
+                  - _links:
+                      self: /projects/proj456-4567-890a-bcdef1234567
+                      tasks: /tasks?project_id=proj456-4567-890a-bcdef1234567
+                    project_id: proj456-4567-890a-bcdef1234567
+                    title: Project Beta
+                    description: Backend refactor and optimization
+                    status: planning
+                    team_id: xyz789-4567-890a-bcdef1234567
+                    category_id: null
+                    deadline: null
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
+
   /projects/{project_id}:
     get:
       summary: Get project details
@@ -928,32 +2255,87 @@ paths:
           description: Project details
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/Project'
               example:
-                project_id: "proj123-4567-890a-bcdef1234567"
-                title: "New Web Application"
-                description: "Developing a responsive web application for client X"
-                team_id: "xyz789-4567-890a-bcdef1234567"
-                category_id: "cat123-4567-890a-bcdef1234567"
+                _links:
+                  collection:
+                    href: /projects
+                    method: GET
+                    title: All projects
+                  create:
+                    href: /projects
+                    method: POST
+                    title: Create a new project
+                  delete:
+                    href: /projects/proj123-4567-890a-bcdef1234567
+                    method: DELETE
+                    title: Delete this project
+                  root:
+                    href: /
+                    method: GET
+                    title: API root
+                  self:
+                    href: /projects/proj123-4567-890a-bcdef1234567
+                    method: GET
+                    title: View this project
+                  tasks:
+                    href: /tasks?project_id=proj123-4567-890a-bcdef1234567
+                    method: GET
+                    title: Tasks in this project
+                  team:
+                    href: /teams/xyz789-4567-890a-bcdef1234567
+                    method: GET
+                    title: Team assigned to this project
+                  update:
+                    href: /projects/proj123-4567-890a-bcdef1234567
+                    method: PUT
+                    title: Update this project
+                project_id: proj123-4567-890a-bcdef1234567
+                title: New Web Application
+                description: Developing a responsive web application for client X
+                status: active
+                category_id: null
+                deadline: null
+                team_id: xyz789-4567-890a-bcdef1234567
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
         '404':
           description: Project not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                _links:
+                  create:
+                    href: "/projects"
+                    method: "POST"
+                    title: "Create a new project"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  self:
+                    href: "/projects"
+                    method: "GET"
+                    title: "All projects"
+                  tasks:
+                    href: "/tasks"
+                    method: "GET"
+                    title: "All tasks"
+                  teams:
+                    href: "/teams"
+                    method: "GET"
+                    title: "All teams"
+                  users:
+                    href: "/users"
+                    method: "GET"
+                    title: "All users"
+                error: "Not Found"
+                message: "Error retrieving project: Project with ID abc123-4567-890a-bcdef1234567 not found"
+
+
     put:
       summary: Update project details
       description: Update details of a specific project.
@@ -977,46 +2359,95 @@ paths:
               $ref: '#/components/schemas/ProjectUpdateRequest'
             example:
               title: "Updated Web Application"
-              description: "Enhanced version of web application for client X"
-              team_id: "xyz789-4567-890a-bcdef1234567"
-              category_id: "cat123-4567-890a-bcdef1234567"
+              description: "Enhanced web app features"
       responses:
-        '200':
+        '201':
           description: Project updated successfully
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/Project'
               example:
-                project_id: "proj123-4567-890a-bcdef1234567"
-                title: "Updated Web Application"
-                description: "Enhanced version of web application for client X"
-                team_id: "xyz789-4567-890a-bcdef1234567"
-                category_id: "cat123-4567-890a-bcdef1234567"
+                _links:
+                  self:
+                    href: /projects/proj123-4567-890a-bcdef1234567
+                    method: GET
+                    title: View this project
+                  collection:
+                    href: /projects
+                    method: GET
+                    title: All projects
+                  create:
+                    href: /projects
+                    method: POST
+                    title: Create a new project
+                  update:
+                    href: /projects/proj123-4567-890a-bcdef1234567
+                    method: PUT
+                    title: Update this project
+                  delete:
+                    href: /projects/proj123-4567-890a-bcdef1234567
+                    method: DELETE
+                    title: Delete this project
+                  tasks:
+                    href: /tasks?project_id=proj123-4567-890a-bcdef1234567
+                    method: GET
+                    title: Tasks in this project
+                  root:
+                    href: /
+                    method: GET
+                    title: API root
+                project_id: proj123-4567-890a-bcdef1234567
+                title: Updated Web Application
+                description: Enhanced web app features
+                status: active
+                team_id: null
+                category_id: null
+                deadline: null
         '400':
-          description: Bad request (invalid team_id or category_id)
+          description: Bad request
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad Request"
+                message: "Invalid team_id"
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
         '404':
           description: Project not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                _links:
+                  create:
+                    href: "/projects"
+                    method: "POST"
+                    title: "Create a new project"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  self:
+                    href: "/projects"
+                    method: "GET"
+                    title: "All projects"
+                  tasks:
+                    href: "/tasks"
+                    method: "GET"
+                    title: "All tasks"
+                  teams:
+                    href: "/teams"
+                    method: "GET"
+                    title: "All teams"
+                  users:
+                    href: "/users"
+                    method: "GET"
+                    title: "All users"
+                message: "Error retrieving project: Project with ID abc123-4567-890a-bcdef1234567 not found"
+
+
     delete:
       summary: Delete a project
       description: Delete a specific project.
@@ -1037,32 +2468,72 @@ paths:
           description: Project deleted successfully
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
               example:
-                message: "Project deleted successfully"
+                _links:
+                  create:
+                    href: /projects
+                    method: POST
+                    title: Create a new project
+                  root:
+                    href: /
+                    method: GET
+                    title: API root
+                  self:
+                    href: /projects
+                    method: GET
+                    title: All projects
+                  tasks:
+                    href: /tasks
+                    method: GET
+                    title: All tasks
+                  teams:
+                    href: /teams
+                    method: GET
+                    title: All teams
+                  users:
+                    href: /users
+                    method: GET
+                    title: All users
+                message: Project deleted successfully
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
         '404':
           description: Project not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /tasks:
+              example:
+                _links:
+                  create:
+                    href: "/projects"
+                    method: "POST"
+                    title: "Create a new project"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  self:
+                    href: "/projects"
+                    method: "GET"
+                    title: "All projects"
+                  tasks:
+                    href: "/tasks"
+                    method: "GET"
+                    title: "All tasks"
+                  teams:
+                    href: "/teams"
+                    method: "GET"
+                    title: "All teams"
+                  users:
+                    href: "/users"
+                    method: "GET"
+                    title: "All users"
+                message: "Error retrieving project: Project with ID abc123-4567-890a-bcdef1234567 not found"
+
+  /tasks/:
     post:
       summary: Create a new task
       description: Create a new task with the provided details.
@@ -1077,8 +2548,8 @@ paths:
             schema:
               $ref: '#/components/schemas/TaskCreateRequest'
             example:
-              title: "Implement User Authentication"
-              description: "Add JWT-based authentication to the backend API"
+              title: "Implement Auth System"
+              description: "Add JWT authentication"
               project_id: "proj123-4567-890a-bcdef1234567"
               assignee_id: "abc123-4567-890a-bcdef1234567"
               status: "pending"
@@ -1088,37 +2559,102 @@ paths:
           description: Task created successfully
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/Task'
               example:
-                task_id: "task123-4567-890a-bcdef1234567"
-                title: "Implement User Authentication"
-                description: "Add JWT-based authentication to the backend API"
-                project_id: "proj123-4567-890a-bcdef1234567"
-                assignee_id: "abc123-4567-890a-bcdef1234567"
-                status: "pending"
+                _links:
+                  self: /tasks/task123-4567-890a-bcdef1234567
+                  project: /projects/proj123-4567-890a-bcdef1234567
+                task_id: task123-4567-890a-bcdef1234567
+                project_id: proj123-4567-890a-bcdef1234567
+                assignee_id: abc123-4567-890a-bcdef1234567
+                created_by: abc123-4567-890a-bcdef1234567
+                updated_by: abc123-4567-890a-bcdef1234567
+                title: Implement Auth System
+                description: Add JWT authentication
                 priority: 1
+                status: pending
+                deadline: null
         '400':
-          description: Bad request (invalid project_id or assignee_id)
+          description: Bad request
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Bad Request"
-                message: "Invalid project ID or assignee ID"
+                _links:
+                  collection:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "All tasks"
+                  create:
+                    href: "/tasks/"
+                    method: "POST"
+                    schema:
+                      type: object
+                      additionalProperties: false
+                      required:
+                        - title
+                        - status
+                        - priority
+                        - project_id
+                      properties:
+                        assignee_id:
+                          type: string
+                          format: uuid
+                        description:
+                          type: string
+                          maxLength: 500
+                        due_date:
+                          type: string
+                          format: date
+                        priority:
+                          type: integer
+                          minimum: 1
+                          maximum: 5
+                        project_id:
+                          type: string
+                          format: uuid
+                        status:
+                          type: string
+                          enum:
+                            - pending
+                            - in_progress
+                            - completed
+                        title:
+                          type: string
+                          minLength: 3
+                          maxLength: 100
+                  create_task:
+                    encoding: application/json
+                    href: "/tasks/"
+                    method: "POST"
+                    title: "Create new task"
+                  projects:
+                    href: "/projects/"
+                    method: "GET"
+                    title: "Browse all projects"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  tasks:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "Browse all tasks"
+                  teams:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "Browse all teams"
+                  users:
+                    href: "/users/"
+                    method: "GET"
+                    title: "Browse all users"
+                error: "Invalid data"
+                message: "Invalid project_id: Project not found"
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
+
     get:
       summary: Get all tasks
       description: Retrieve a list of all tasks.
@@ -1134,72 +2670,117 @@ paths:
             type: string
             format: uuid
           example: "proj123-4567-890a-bcdef1234567"
-          description: Filter tasks by project ID
-        - name: assignee_id
-          in: query
-          required: false
-          schema:
-            type: string
-            format: uuid
-          example: "abc123-4567-890a-bcdef1234567"
-          description: Filter tasks by assignee ID
-        - name: status
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: [pending, in_progress, completed]
-          example: "in_progress"
-          description: Filter tasks by status
       responses:
         '200':
           description: List of tasks
           content:
             application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Task'
-              examples:
-                allTasks:
-                  summary: All Tasks
-                  value:
-                    - task_id: "task123-4567-890a-bcdef1234567"
-                      title: "Implement User Authentication"
-                      description: "Add JWT-based authentication to the backend API"
-                      project_id: "proj123-4567-890a-bcdef1234567"
-                      assignee_id: "abc123-4567-890a-bcdef1234567"
-                      status: "pending"
-                      priority: 1
-                    - task_id: "task456-7890-123b-cdefg4567890"
-                      title: "Design Database Schema"
-                      description: "Create database schema for the project"
-                      project_id: "proj123-4567-890a-bcdef1234567"
-                      assignee_id: "def456-7890-123b-cdefg4567890"
-                      status: "in_progress"
-                      priority: 2
-                filteredTasks:
-                  summary: Filtered Tasks by Status
-                  value:
-                    - task_id: "task456-7890-123b-cdefg4567890"
-                      title: "Design Database Schema"
-                      description: "Create database schema for the project"
-                      project_id: "proj123-4567-890a-bcdef1234567"
-                      assignee_id: "def456-7890-123b-cdefg4567890"
-                      status: "in_progress"
-                      priority: 2
+              example:
+                - _links:
+                    project: /projects/proj123-4567-890a-bcdef1234567
+                    self: /tasks/task123-4567-890a-bcdef1234567
+                  task_id: task123-4567-890a-bcdef1234567
+                  title: Task One
+                  description: Design user login interface
+                  status: in_progress
+                  priority: 2
+                  deadline: null
+                  assignee_id: abc123-4567-890a-bcdef1234567
+                  project_id: proj123-4567-890a-bcdef1234567
+                  created_by: abc123-4567-890a-bcdef1234567
+                  updated_by: abc123-4567-890a-bcdef1234567
+                - _links:
+                    project: /projects/proj123-4567-890a-bcdef1234567
+                    self: /tasks/task456-4567-890a-bcdef1234567
+                  task_id: task456-4567-890a-bcdef1234567
+                  title: Task Two
+                  description: Setup JWT authentication middleware
+                  status: completed
+                  priority: 1
+                  deadline: null
+                  assignee_id: abc123-4567-890a-bcdef1234567
+                  project_id: proj123-4567-890a-bcdef1234567
+                  created_by: abc123-4567-890a-bcdef1234567
+                  updated_by: abc123-4567-890a-bcdef1234567
+        400:
+          description: Bad request. The provided project ID does not exist.
+          content:
+            application/json:
+              example:
+                _links:
+                  collection:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "All tasks"
+                  create:
+                    href: "/tasks/"
+                    method: "POST"
+                    title: "Create new task"
+                    schema:
+                      additionalProperties: false
+                      type: object
+                      required:
+                        - title
+                        - status
+                        - priority
+                        - project_id
+                      properties:
+                        assignee_id:
+                          type: string
+                          format: uuid
+                        description:
+                          type: string
+                          maxLength: 500
+                        due_date:
+                          type: string
+                          format: date
+                        priority:
+                          type: integer
+                          minimum: 1
+                          maximum: 5
+                        project_id:
+                          type: string
+                          format: uuid
+                        status:
+                          type: string
+                          enum: [pending, in_progress, completed]
+                        title:
+                          type: string
+                          minLength: 3
+                          maxLength: 100
+                  create_task:
+                    href: "/tasks/"
+                    method: "POST"
+                    encoding: "application/json"
+                    title: "Create new task"
+                  projects:
+                    href: "/projects/"
+                    method: "GET"
+                    title: "Browse all projects"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  tasks:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "Browse all tasks"
+                  teams:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "Browse all teams"
+                  users:
+                    href: "/users/"
+                    method: "GET"
+                    title: "Browse all users"
+                error: "Project with ID 937f9da6-5607-4e7e-875c-2764b72a1542 not found"
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
+
   /tasks/{task_id}:
     get:
       summary: Get task details
@@ -1221,37 +2802,98 @@ paths:
           description: Task details
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/Task'
               example:
-                task_id: "task123-4567-890a-bcdef1234567"
-                title: "Implement User Authentication"
-                description: "Add JWT-based authentication to the backend API"
-                project_id: "proj123-4567-890a-bcdef1234567"
-                assignee_id: "abc123-4567-890a-bcdef1234567"
-                status: "pending"
+                _links:
+                  project: /projects/proj123-4567-890a-bcdef1234567
+                  self: /tasks/task123-4567-890a-bcdef1234567
+                task_id: task123-4567-890a-bcdef1234567
+                title: Implement User Authentication
+                description: Add JWT-based authentication to the backend API
+                status: completed
                 priority: 1
+                deadline: null
+                assignee_id: abc123-4567-890a-bcdef1234567
+                project_id: proj123-4567-890a-bcdef1234567
+                created_by: abc123-4567-890a-bcdef1234567
+                updated_by: abc123-4567-890a-bcdef1234567
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
         '404':
           description: Task not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Not Found"
-                message: "Task with ID task123-4567-890a-bcdef1234567 not found"
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                _links:
+                  collection:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "All tasks"
+                  create:
+                    href: "/tasks/"
+                    method: "POST"
+                    schema:
+                      additionalProperties: false
+                      type: object
+                      required:
+                        - title
+                        - status
+                        - priority
+                        - project_id
+                      properties:
+                        assignee_id:
+                          type: string
+                          format: uuid
+                        description:
+                          type: string
+                          maxLength: 500
+                        due_date:
+                          type: string
+                          format: date
+                        priority:
+                          type: integer
+                          minimum: 1
+                          maximum: 5
+                        project_id:
+                          type: string
+                          format: uuid
+                        status:
+                          type: string
+                          enum: [pending, in_progress, completed]
+                        title:
+                          type: string
+                          minLength: 3
+                          maxLength: 100
+                  create_task:
+                    href: "/tasks/"
+                    method: "POST"
+                    encoding: "application/json"
+                    title: "Create new task"
+                  projects:
+                    href: "/projects/"
+                    method: "GET"
+                    title: "Browse all projects"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  tasks:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "Browse all tasks"
+                  teams:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "Browse all teams"
+                  users:
+                    href: "/users/"
+                    method: "GET"
+                    title: "Browse all users"
+                error: "Task not found"
+
     put:
       summary: Update task details
       description: Update details of a specific task.
@@ -1274,55 +2916,112 @@ paths:
             schema:
               $ref: '#/components/schemas/TaskUpdateRequest'
             example:
-              title: "Updated User Authentication"
-              description: "Implement OAuth2 instead of basic JWT authentication"
               status: "in_progress"
               priority: 2
       responses:
         '200':
-          description: Task updated successfully
+          description: Task retrieved or updated successfully
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/Task'
               example:
-                task_id: "task123-4567-890a-bcdef1234567"
-                title: "Updated User Authentication"
-                description: "Implement OAuth2 instead of basic JWT authentication"
-                project_id: "proj123-4567-890a-bcdef1234567"
+                _links:
+                  project: "/projects/proj123-4567-890a-bcdef1234567"
+                  self: "/tasks/task123-4567-890a-bcdef1234567"
                 assignee_id: "abc123-4567-890a-bcdef1234567"
-                status: "in_progress"
+                created_by: "abc123-4567-890a-bcdef1234567"
+                deadline: null
+                description: "Add JWT authentication"
                 priority: 2
+                project_id: "proj123-4567-890a-bcdef1234567"
+                status: "in_progress"
+                task_id: "task123-4567-890a-bcdef1234567"
+                title: "Implement Auth System"
+                updated_by: "abc123-4567-890a-bcdef1234567"
         '400':
-          description: Bad request (invalid status or priority)
+          description: Bad request
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
               example:
                 error: "Bad Request"
-                message: "Invalid status or priority value"
+                message: "Invalid status"
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
         '404':
           description: Task not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Not Found"
-                message: "Task with ID task123-4567-890a-bcdef1234567 not found"
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                _links:
+                  collection:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "All tasks"
+                  create:
+                    href: "/tasks/"
+                    method: "POST"
+                    schema:
+                      additionalProperties: false
+                      type: object
+                      required:
+                        - title
+                        - status
+                        - priority
+                        - project_id
+                      properties:
+                        assignee_id:
+                          type: string
+                          format: uuid
+                        description:
+                          type: string
+                          maxLength: 500
+                        due_date:
+                          type: string
+                          format: date
+                        priority:
+                          type: integer
+                          minimum: 1
+                          maximum: 5
+                        project_id:
+                          type: string
+                          format: uuid
+                        status:
+                          type: string
+                          enum: [pending, in_progress, completed]
+                        title:
+                          type: string
+                          minLength: 3
+                          maxLength: 100
+                  create_task:
+                    href: "/tasks/"
+                    method: "POST"
+                    encoding: "application/json"
+                    title: "Create new task"
+                  projects:
+                    href: "/projects/"
+                    method: "GET"
+                    title: "Browse all projects"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  tasks:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "Browse all tasks"
+                  teams:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "Browse all teams"
+                  users:
+                    href: "/users/"
+                    method: "GET"
+                    title: "Browse all users"
+                error: "Task not found"
+
     delete:
       summary: Delete a task
       description: Delete a specific task.
@@ -1343,34 +3042,154 @@ paths:
           description: Task deleted successfully
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
               example:
-                message: "Task deleted successfully"
+                _links:
+                  collection:
+                    href: /tasks/
+                    method: GET
+                    title: All tasks
+                  create:
+                    href: /tasks/
+                    method: POST
+                    schema:
+                      type: object
+                      required:
+                        - title
+                        - status
+                        - priority
+                        - project_id
+                      additionalProperties: false
+                      properties:
+                        assignee_id:
+                          type: string
+                          format: uuid
+                        description:
+                          type: string
+                          maxLength: 500
+                        due_date:
+                          type: string
+                          format: date
+                        priority:
+                          type: integer
+                          minimum: 1
+                          maximum: 5
+                        project_id:
+                          type: string
+                          format: uuid
+                        status:
+                          type: string
+                          enum:
+                            - pending
+                            - in_progress
+                            - completed
+                        title:
+                          type: string
+                          minLength: 3
+                          maxLength: 100
+                  create_task:
+                    href: /tasks/
+                    method: POST
+                    title: Create new task
+                    encoding: application/json
+                  projects:
+                    href: /projects/
+                    method: GET
+                    title: Browse all projects
+                  root:
+                    href: /
+                    method: GET
+                    title: API root
+                  tasks:
+                    href: /tasks/
+                    method: GET
+                    title: Browse all tasks
+                  teams:
+                    href: /teams/
+                    method: GET
+                    title: Browse all teams
+                  users:
+                    href: /users/
+                    method: GET
+                    title: Browse all users
+                message: Task deleted successfully
         '401':
           description: Unauthorized
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                msg: "Missing Authorization Header"
         '404':
           description: Task not found
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: "Not Found"
-                message: "Task with ID task123-4567-890a-bcdef1234567 not found"
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                _links:
+                  collection:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "All tasks"
+                  create:
+                    href: "/tasks/"
+                    method: "POST"
+                    schema:
+                      additionalProperties: false
+                      type: object
+                      required:
+                        - title
+                        - status
+                        - priority
+                        - project_id
+                      properties:
+                        assignee_id:
+                          type: string
+                          format: uuid
+                        description:
+                          type: string
+                          maxLength: 500
+                        due_date:
+                          type: string
+                          format: date
+                        priority:
+                          type: integer
+                          minimum: 1
+                          maximum: 5
+                        project_id:
+                          type: string
+                          format: uuid
+                        status:
+                          type: string
+                          enum: [pending, in_progress, completed]
+                        title:
+                          type: string
+                          minLength: 3
+                          maxLength: 100
+                  create_task:
+                    href: "/tasks/"
+                    method: "POST"
+                    encoding: "application/json"
+                    title: "Create new task"
+                  projects:
+                    href: "/projects/"
+                    method: "GET"
+                    title: "Browse all projects"
+                  root:
+                    href: "/"
+                    method: "GET"
+                    title: "API root"
+                  tasks:
+                    href: "/tasks/"
+                    method: "GET"
+                    title: "Browse all tasks"
+                  teams:
+                    href: "/teams/"
+                    method: "GET"
+                    title: "Browse all teams"
+                  users:
+                    href: "/users/"
+                    method: "GET"
+                    title: "Browse all users"
+                error: "Task not found"
+
   /categories:
     post:
       summary: Create a new category
@@ -1631,13 +3450,46 @@ components:
       required:
         - email
         - password
+
     LoginResponse:
       type: object
       properties:
         access_token:
           type: string
-      required:
-        - access_token
+        user_id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        _links:
+          type: object
+          properties:
+            self:
+              type: object
+              properties:
+                href:
+                  type: string
+            user_profile:
+              type: object
+              properties:
+                href:
+                  type: string
+            tasks:
+              type: object
+              properties:
+                href:
+                  type: string
+            teams:
+              type: object
+              properties:
+                href:
+                  type: string
+            projects:
+              type: object
+              properties:
+                href:
+                  type: string
+
     ErrorResponse:
       type: object
       properties:
@@ -1645,9 +3497,18 @@ components:
           type: string
         message:
           type: string
+        _links:
+          type: object
+          properties:
+            self:
+              type: object
+              properties:
+                href:
+                  type: string
       required:
         - error
         - message
+
     UserCreateRequest:
       type: object
       properties:
@@ -1660,11 +3521,12 @@ components:
           type: string
         role:
           type: string
+          default: "member"
       required:
         - username
         - email
         - password
-        - role
+
     UserUpdateRequest:
       type: object
       properties:
@@ -1677,6 +3539,7 @@ components:
           type: string
         role:
           type: string
+
     User:
       type: object
       properties:
@@ -1690,11 +3553,20 @@ components:
           format: email
         role:
           type: string
+        _links:
+          type: object
+          properties:
+            self:
+              type: object
+              properties:
+                href:
+                  type: string
       required:
         - user_id
         - username
         - email
         - role
+
     TeamCreateRequest:
       type: object
       properties:
@@ -1708,6 +3580,7 @@ components:
       required:
         - name
         - lead_id
+
     TeamUpdateRequest:
       type: object
       properties:
@@ -1718,6 +3591,7 @@ components:
         lead_id:
           type: string
           format: uuid
+
     Team:
       type: object
       properties:
@@ -1731,10 +3605,24 @@ components:
         lead_id:
           type: string
           format: uuid
+        _links:
+          type: object
+          properties:
+            self:
+              type: object
+              properties:
+                href:
+                  type: string
+            members:
+              type: object
+              properties:
+                href:
+                  type: string
       required:
         - team_id
         - name
         - lead_id
+
     TeamMemberAddRequest:
       type: object
       properties:
@@ -1746,6 +3634,7 @@ components:
       required:
         - user_id
         - role
+
     TeamMemberUpdateRequest:
       type: object
       properties:
@@ -1753,6 +3642,7 @@ components:
           type: string
       required:
         - role
+
     TeamMember:
       type: object
       properties:
@@ -1761,9 +3651,18 @@ components:
           format: uuid
         role:
           type: string
+        _links:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                href:
+                  type: string
       required:
         - user_id
         - role
+
     ProjectCreateRequest:
       type: object
       properties:
@@ -1774,13 +3673,19 @@ components:
         team_id:
           type: string
           format: uuid
-        category_id:
+        status:
           type: string
-          format: uuid
+          enum: [planning, active, completed, on_hold, cancelled]
+        priority:
+          type: integer
+          minimum: 1
+          maximum: 3
       required:
         - title
         - team_id
-        - category_id
+        - status
+        - priority
+
     ProjectUpdateRequest:
       type: object
       properties:
@@ -1791,9 +3696,7 @@ components:
         team_id:
           type: string
           format: uuid
-        category_id:
-          type: string
-          format: uuid
+
     Project:
       type: object
       properties:
@@ -1807,14 +3710,24 @@ components:
         team_id:
           type: string
           format: uuid
-        category_id:
-          type: string
-          format: uuid
+        _links:
+          type: object
+          properties:
+            self:
+              type: object
+              properties:
+                href:
+                  type: string
+            tasks:
+              type: object
+              properties:
+                href:
+                  type: string
       required:
         - project_id
         - title
         - team_id
-        - category_id
+
     TaskCreateRequest:
       type: object
       properties:
@@ -1839,8 +3752,7 @@ components:
         - title
         - project_id
         - assignee_id
-        - status
-        - priority
+
     TaskUpdateRequest:
       type: object
       properties:
@@ -1855,6 +3767,7 @@ components:
           type: integer
           minimum: 1
           maximum: 3
+
     Task:
       type: object
       properties:
@@ -1876,15 +3789,21 @@ components:
           enum: [pending, in_progress, completed]
         priority:
           type: integer
-          minimum: 1
-          maximum: 3
+        _links:
+          type: object
+          properties:
+            self:
+              type: object
+              properties:
+                href:
+                  type: string
       required:
         - task_id
         - title
         - project_id
         - assignee_id
         - status
-        - priority
+
     CategoryCreateRequest:
       type: object
       properties:
@@ -1894,6 +3813,7 @@ components:
           type: string
       required:
         - name
+    
     CategoryUpdateRequest:
       type: object
       properties:
@@ -1901,16 +3821,5 @@ components:
           type: string
         description:
           type: string
+    
     Category:
-      type: object
-      properties:
-        category_id:
-          type: string
-          format: uuid
-        name:
-          type: string
-        description:
-          type: string
-      required:
-        - category_id
-        - name

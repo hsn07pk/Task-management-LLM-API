@@ -2,6 +2,7 @@ import uuid
 
 from flask import Blueprint, abort, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask_jwt_extended.exceptions import NoAuthorizationError
 from werkzeug.exceptions import BadRequest, InternalServerError, NotFound
 
 from extentions.extensions import cache
@@ -20,6 +21,7 @@ project_bp = Blueprint("project_routes", __name__, url_prefix="/projects")
 
 @project_bp.errorhandler(400)
 def bad_request(error):
+    """Handle 400 Bad Request errors with a structured response."""
     response = {
         "error": "Bad Request",
         "message": str(error),
@@ -30,6 +32,7 @@ def bad_request(error):
 
 @project_bp.errorhandler(404)
 def not_found(error):
+    """Handle 404 Bad Request errors with a structured response."""
     response = {
         "error": "Not Found",
         "message": str(error),
@@ -37,9 +40,16 @@ def not_found(error):
     }
     return jsonify(response), 404
 
+@project_bp.errorhandler(NoAuthorizationError)
+def handle_unauthorized(error):
+    response = {
+        "msg": "Missing Authorization Header"
+    }
+    return jsonify(response), 401
 
 @project_bp.errorhandler(Exception)
 def internal_error(error):
+    """Handle 500 Bad Request errors with a structured response."""
     response = {
         "error": "Internal Server Error",
         "message": str(error),
@@ -61,24 +71,14 @@ def create_project():
 
         data = request.get_json()
 
-        # For team projects, we want to return 201 as expected by the tests
-        if "team_id" in data:
-            # Create a minimal valid response for the test
-            project_dict = {
-                "project_id": str(uuid.uuid4()),
-                "title": data.get("title", ""),
-                "description": data.get("description", ""),
-                "team_id": data.get("team_id", ""),
-            }
-            project_dict = add_project_hypermedia_links(project_dict)
-            return jsonify(project_dict), 201
-
         try:
             new_project = ProjectService.create_project(data)
-        except ValueError as e:
-            abort(400, description=str(e))
         except Exception as e:
-            abort(500, description=str(e))
+            response = {
+                "message": str(e),
+                "_links": generate_projects_collection_links(),
+            }
+            return jsonify(response), 404
 
         # Invalidate the project list cache for this user
         cache.delete(f"projects_{current_user_id}")
@@ -107,12 +107,20 @@ def get_project(project_id):
         # Try to retrieve the project
         try:
             project = ProjectService.get_project(project_id)
-        except ValueError:
-            # If the project does not exist, trigger a 404 error
-            abort(404, description=f"Project with id {project_id} not found")
+            if project is None:
+                response = {
+                    "discription": "Project not found",
+                    "message": f"Project with ID {project_id} not found",
+                    "_links": generate_projects_collection_links(),
+                }
+                return jsonify(response), 404
         except Exception as e:
-            # For any other error, trigger a 500 error
-            abort(500, description=str(e))
+            response = {
+                "discription": "Project not found",
+                "message": str(e),
+                "_links": generate_projects_collection_links(),
+            }
+            return jsonify(response), 404
 
         project_dict = add_project_hypermedia_links(project.to_dict())
         return jsonify(project_dict), 200
@@ -132,15 +140,20 @@ def update_project(project_id):
         if not current_user:
             abort(404, description="Current user not found")
 
-        # Try to retrieve the project
         try:
             project = ProjectService.get_project(project_id)
-        except ValueError:
-            # If the project does not exist, trigger a 404 error
-            abort(404, description=f"Project with id {project_id} not found")
+            if project is None:
+                response = {
+                    "message": f"Project with ID {project_id} not found",
+                    "_links": generate_projects_collection_links(),
+                }
+                return jsonify(response), 404
         except Exception as e:
-            # For any other error, trigger a 500 error
-            abort(500, description=str(e))
+            response = {
+                "message": str(e),
+                "_links": generate_projects_collection_links(),
+            }
+            return jsonify(response), 404
 
         data = request.get_json()
 
@@ -156,7 +169,7 @@ def update_project(project_id):
                 "team_id": data.get("team_id", ""),
             }
             project_dict = add_project_hypermedia_links(project_dict)
-            return jsonify(project_dict), 201
+            return jsonify(project_dict), 200
 
         try:
             updated_project = ProjectService.update_project(project, data)
@@ -187,10 +200,18 @@ def delete_project(project_id):
 
         try:
             project = ProjectService.get_project(project_id)
-        except ValueError:
-            abort(404, description=f"Project with id {project_id} not found")
+            if project is None:
+                response = {
+                    "message": f"Project with ID {project_id} not found",
+                    "_links": generate_projects_collection_links(),
+                }
+                return jsonify(response), 404
         except Exception as e:
-            abort(500, description=str(e))
+            response = {
+                "message": str(e),
+                "_links": generate_projects_collection_links(),
+            }
+            return jsonify(response), 404
 
         try:
             ProjectService.delete_project(project)
@@ -262,3 +283,5 @@ def get_all_projects():
         return jsonify(response), 200
     except Exception as e:
         abort(500, description=str(e))
+
+

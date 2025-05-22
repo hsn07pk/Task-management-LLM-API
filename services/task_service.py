@@ -5,6 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 
 def is_valid_uuid(value):
+    """Checks if the provided value is a valid UUID."""
     try:
         UUID(value)
         return True
@@ -16,8 +17,17 @@ from models import PriorityEnum, Project, StatusEnum, Task, User, db
 
 
 class TaskService:
+    """Service class for task operations."""
+
     @staticmethod
     def create_task(data, user_id):
+        """
+        Creates a new task.
+
+        :param data: Dictionary containing task details.
+        :param user_id: UUID of the user creating the task.
+        :return: Dictionary with task data or error details.
+        """
         try:
             created_by = updated_by = UUID(user_id)
             project_id = UUID(data["project_id"])
@@ -78,6 +88,12 @@ class TaskService:
 
     @staticmethod
     def get_task(task_id):
+        """
+        Retrieves a task by its ID.
+
+        :param task_id: UUID of the task to retrieve.
+        :return: Dictionary with task data or error details.
+        """
         task = Task.query.get(task_id)
         if not task:
             raise ValueError("Task not found")
@@ -85,6 +101,14 @@ class TaskService:
 
     @staticmethod
     def update_task(task_id, data, user_id):
+        """
+        Updates an existing task.
+
+        :param task_id: UUID of the task to update.
+        :param data: Dictionary with updated task fields.
+        :param user_id: UUID of the user performing the update.
+        :return: Dictionary with updated task data or error details.
+        """
         task = Task.query.get(task_id)
         if not task:
             raise ValueError("Task not found")
@@ -128,6 +152,12 @@ class TaskService:
 
     @staticmethod
     def delete_task(task_id):
+        """
+        Deletes a task.
+
+        :param task_id: UUID of the task to delete.
+        :return: Dictionary with confirmation message or error details.
+        """
         task = Task.query.get(task_id)
         if not task:
             raise ValueError("Task not found")
@@ -137,16 +167,10 @@ class TaskService:
     @staticmethod
     def get_tasks(filters):
         """
-        Retrieve tasks based on provided filters.
+        Retrieves tasks based on filters.
 
-        Args:
-            filters (dict): A dictionary of filters to apply when retrieving tasks.
-
-        Returns:
-            list: A list of tasks that match the filters.
-
-        Raises:
-            ValueError: If any of the filters are invalid.
+        :param filters: Dictionary of optional filters (e.g., project_id, assignee_id, status, priority).
+        :return: Dictionary with list of matching tasks or error details.
         """
         if "project_id" in filters:
             if not is_valid_uuid(filters["project_id"]):

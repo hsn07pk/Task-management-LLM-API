@@ -50,3 +50,7 @@ logs/
 #reports
 reports/
 last_report.html
+
+# TLS private keys (generate locally; never commit)
+*.key
+*.pem
